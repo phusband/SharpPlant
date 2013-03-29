@@ -6,7 +6,7 @@ namespace SharpPlant.SmartPlantReview
     /// <summary>
     ///     Contains information about a particular SmartPlant Review object.
     /// </summary>
-    public class ObjectData
+    public class SprObjectData
     {
         #region ObjectData Properties
 
@@ -18,7 +18,7 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     The parent Application reference.
         /// </summary>
-        public Application Application { get; private set; }
+        public SprApplication Application { get; private set; }
 
         /// <summary>
         ///     DataObject color index.
@@ -139,7 +139,7 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     The 3D point where the ObjectData was selected.
         /// </summary>
-        public Point3D SelectedPoint { get; internal set; }
+        public SprPoint3D SelectedPoint { get; internal set; }
 
         /// <summary>
         ///     A collection of key/value pairs containing object label entries
@@ -155,13 +155,13 @@ namespace SharpPlant.SmartPlantReview
         #endregion
 
         // DataObject initializer
-        internal ObjectData()
+        internal SprObjectData()
         {
             // Link the parent application
-            Application = SmartPlantReview.ActiveApplication;
+            Application = SprApplication.ActiveApplication;
 
             // Get a new DrObjectDataDbl object
-            DrObjectDataDbl = Activator.CreateInstance(ImportedTypes.DrObjectDataDbl);
+            DrObjectDataDbl = Activator.CreateInstance(SprImportedTypes.DrObjectDataDbl);
 
             // Create the label dictionary
             LabelData = new Dictionary<string, string>();

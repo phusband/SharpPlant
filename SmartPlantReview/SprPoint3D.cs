@@ -3,7 +3,7 @@
     /// <summary>
     ///     Provides the structure for a 3D point in SmartPlant Review.
     /// </summary>
-    public class Point3D
+    public class SprPoint3D
     {
         #region Point3D Properties
 
@@ -25,11 +25,11 @@
         #endregion
 
         // Point3D initializers
-        public Point3D()
+        public SprPoint3D()
         {
         }
 
-        public Point3D(double east, double north, double elevation)
+        public SprPoint3D(double east, double north, double elevation)
         {
             // Set the coordinates
             East = east;

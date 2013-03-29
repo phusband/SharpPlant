@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Data;
 using System.Data.OleDb;
+using System.Text;
 
 // OleDB Database methods
+
 namespace SharpPlant
 {
-    static class DbMethods
+    internal static class DbMethods
     {
         public static DataTable GetDbTable(string dbPath, string tableName)
         {
@@ -28,18 +30,24 @@ namespace SharpPlant
 
                     // Fill the return table
                     adapter.Fill(returnTable);
+                }
 
-                } // Return nothing on error
-                catch (OleDbException) { return null; }
+                // Return nothing on error
+                catch (OleDbException)
+                {
+                    return null;
+                }
             }
 
             // Return the table
             return returnTable;
         }
+
         public static bool UpdateDbTable(string dbPath, DataTable inputTable)
         {
             return UpdateDbTable(dbPath, string.Empty, inputTable);
         }
+
         public static bool UpdateDbTable(string dbPath, string rowFilter, DataTable inputTable)
         {
             // Create the connection
@@ -54,18 +62,22 @@ namespace SharpPlant
                     var updateCommand = GetUpdateCommand(inputTable, rowFilter, connection);
 
                     // Link the new data adapter
-                    var adapter = new OleDbDataAdapter {UpdateCommand = updateCommand};
+                    var adapter = new OleDbDataAdapter { UpdateCommand = updateCommand };
 
                     // Update the MDB table
                     adapter.Update(inputTable);
 
                 } // Return false on error
-                catch (OleDbException) { return false; }
+                catch (OleDbException)
+                {
+                    return false;
+                }
             }
 
             // Return true on success
             return true;
         }
+
         public static bool AddDbField(string dbPath, string fieldName)
         {
             // Create the connection
@@ -81,8 +93,9 @@ namespace SharpPlant
 
                     // Update the database table 
                     updateCommand.ExecuteNonQuery();
+                }
 
-                } // Return false on error
+                // Return false on error
                 catch (OleDbException ex)
                 {
                     // Return true if the field already exists
@@ -93,6 +106,7 @@ namespace SharpPlant
             // Return true on success
             return true;
         }
+
         private static OleDbConnection GetConnection(string dbPath)
         {
             // Build the connection string
@@ -101,6 +115,7 @@ namespace SharpPlant
             // Return the connection
             return new OleDbConnection(connectionString);
         }
+
         private static OleDbCommand GetSelectCommand(string tableName, OleDbConnection connection)
         {
             // Create the return command
@@ -112,13 +127,14 @@ namespace SharpPlant
             // Return the command
             return retCommand;
         }
+
         private static OleDbCommand GetUpdateCommand(DataTable inputTable, string rowFilter, OleDbConnection connection)
         {
             // Create the return command
             var retCommand = connection.CreateCommand();
 
             // Build the command string
-            var sb = new System.Text.StringBuilder(string.Format("UPDATE {0} SET ", inputTable.TableName));
+            var sb = new StringBuilder(string.Format("UPDATE {0} SET ", inputTable.TableName));
 
             foreach (DataColumn col in inputTable.Columns)
             {
@@ -134,13 +150,14 @@ namespace SharpPlant
                         SourceColumn = col.ColumnName
                     };
 
+                // Add the parameter to the return command
                 retCommand.Parameters.Add(par);
             }
 
             // Remove the last comma
             sb.Remove(sb.ToString().LastIndexOf(','), 1);
 
-            // Add a where clause if provided
+            // Add a where clause if a rowfilter was provided
             if (rowFilter != string.Empty)
                 sb.AppendFormat("WHERE {0}", rowFilter);
 
@@ -150,13 +167,14 @@ namespace SharpPlant
             // Return the command
             return retCommand;
         }
+
         private static OleDbCommand GetAddFieldCommand(string tableName, string fieldName, OleDbConnection connection)
         {
             // Create the return command
             var retCommand = connection.CreateCommand();
 
             // Build the command string
-            var sb = new System.Text.StringBuilder(string.Format("ALTER TABLE {0} ADD COLUMN ", tableName));
+            var sb = new StringBuilder(string.Format("ALTER TABLE {0} ADD COLUMN ", tableName));
 
             // Append the column details
             sb.AppendFormat("{0} TEXT(255), ", fieldName);
@@ -170,19 +188,28 @@ namespace SharpPlant
             // Return the command
             return retCommand;
         }
+
         private static OleDbType GetOleDbType(Type inputType)
         {
             switch (inputType.FullName)
             {
                 // Return the appropriate type
-                case "System.Boolean": return OleDbType.Boolean;
-                case "System.Int32": return OleDbType.Integer;
-                case "System.Single": return OleDbType.Single;
-                case "System.Double": return OleDbType.Double;
-                case "System.Decimal": return OleDbType.Decimal;
-                case "System.String": return OleDbType.Char;
-                case "System.Char": return OleDbType.Char;
-                default: return OleDbType.Variant;
+                case "System.Boolean":
+                    return OleDbType.Boolean;
+                case "System.Int32":
+                    return OleDbType.Integer;
+                case "System.Single":
+                    return OleDbType.Single;
+                case "System.Double":
+                    return OleDbType.Double;
+                case "System.Decimal":
+                    return OleDbType.Decimal;
+                case "System.String":
+                    return OleDbType.Char;
+                case "System.Char":
+                    return OleDbType.Char;
+                default:
+                    return OleDbType.Variant;
             }
         }
     }

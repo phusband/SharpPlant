@@ -8,12 +8,18 @@ using System.Windows.Forms;
 
 namespace SharpPlant.SmartPlantReview
 {
+
     /// <summary>
     ///     Provides methods and properties for interacting with SmartPlant Review.
     /// </summary>
-    public class Application
+    public class SprApplication
     {
         #region Application Properties
+
+        /// <summary>
+        ///     The static Application used to set the class parent object
+        /// </summary>
+        internal static SprApplication ActiveApplication;
 
         /// <summary>
         ///     The active COM reference to the DrAPi class.
@@ -42,7 +48,7 @@ namespace SharpPlant.SmartPlantReview
                 var mdbName = string.Empty;
 
                 // Set the global option to retrieve database file info
-                DrApi.GlobalOptionsSet(Constants.G_API_FILE_INFO_MODE, 1);
+                DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
 
                 // Get the directory path
                 DrApi.FilePathFromNumber(1, ref dirPath);
@@ -51,7 +57,7 @@ namespace SharpPlant.SmartPlantReview
                 DrApi.FileNameFromNumber(1, ref mdbName);
 
                 // Reset the global variable
-                DrApi.GlobalOptionsSet(Constants.G_API_FILE_INFO_MODE, 0);
+                DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 0);
 
                 // Check if the values are set
                 if (dirPath != null && mdbName != null)
@@ -77,13 +83,13 @@ namespace SharpPlant.SmartPlantReview
                 string vueName = null;
 
                 // Set the global variable
-                DrApi.GlobalOptionsSet(Constants.G_API_FILE_INFO_MODE, 1);
+                DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
 
                 // Get the VUE file name
                 DrApi.FileNameFromNumber(0, ref vueName);
 
                 // Reset the global variable
-                DrApi.GlobalOptionsSet(Constants.G_API_FILE_INFO_MODE, 0);
+                DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 0);
 
                 // Return the path
                 return vueName;
@@ -200,57 +206,55 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     The primary SmartPlant Review application window.
         /// </summary>
-        public Window ApplicationWindow
+        public SprWindow ApplicationWindow
         {
-            get { return Window_Get(Constants.SMARTPLANT_REVIEW_WIN); }
+            get { return Window_Get(SprConstants.SprApplicationWindow); }
             set { Window_Set(value); }
         }
 
         /// <summary>
         ///     The Main view window inside the SmartPlant Review application.
         /// </summary>
-        public Window MainWindow
+        public SprWindow MainWindow
         {
-            get { return Window_Get(Constants.MAIN_WIN); }
+            get { return Window_Get(SprConstants.SprMainWindow); }
             set { Window_Set(value); }
         }
 
         /// <summary>
         ///     The Plan view window inside the SmartPlant Review application.
         /// </summary>
-        public Window PlanWindow
+        public SprWindow PlanWindow
         {
-            get { return Window_Get(Constants.PLAN_WIN); }
+            get { return Window_Get(SprConstants.SprPlanWindow); }
             set { Window_Set(value); }
         }
 
         /// <summary>
         ///     The Elevation window inside the SmartPlant Review application.
         /// </summary>
-        public Window ElevationWindow
+        public SprWindow ElevationWindow
         {
-            get { return Window_Get(Constants.ELEV_WIN); }
+            get { return Window_Get(SprConstants.SprElevationWindow); }
             set { Window_Set(value); }
         }
 
         /// <summary>
         ///     The Text window inside the SmartPlant Review application.
         /// </summary>
-        public Window TextWindow
+        public SprWindow TextWindow
         {
-            get { return Window_Get(Constants.TEXT_WIN); }
+            get { return Window_Get(SprConstants.SprTextWindow); }
             set { Window_Set(value); }
         }
 
         #endregion
 
         // Application initializer
-        public Application()
+        public SprApplication()
         {
             // Set the static application for class parent referencing
-            SmartPlantReview.ActiveApplication = this;
-
-            // Get the application windows
+            ActiveApplication = this;
         }
 
         #region General
@@ -272,7 +276,7 @@ namespace SharpPlant.SmartPlantReview
             if (apps.Length > 0)
             {
                 // Get the running instance of SmartPlant Review
-                DrApi = Activator.CreateInstance(ImportedTypes.DrApi);
+                DrApi = Activator.CreateInstance(SprImportedTypes.DrApi);
             }
 
             // Return the connection state
@@ -292,7 +296,7 @@ namespace SharpPlant.SmartPlantReview
                 int sprResult = DrApi.SessionAttach(fileName);
                 return (sprResult == 0);
             }
-            throw Exceptions.ApiNotConnected;
+            throw SprExceptions.ApiNotConnected;
         }
 
         public void Exit()
@@ -302,13 +306,13 @@ namespace SharpPlant.SmartPlantReview
                 // Exit the SPR application
                 DrApi.ExitViewer();
             }
-            else throw Exceptions.ApiNotConnected;
+            else throw SprExceptions.ApiNotConnected;
         }
 
         public void RefreshData()
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
             // Set SPR to the front
             Activate();
 
@@ -320,12 +324,12 @@ namespace SharpPlant.SmartPlantReview
 
         #region Point Select
 
-        public Point3D GetPoint(string prompt)
+        public SprPoint3D GetPoint(string prompt)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
             // Create the DrPointDbl
-            dynamic objPoint = Activator.CreateInstance(ImportedTypes.DrPointDbl);
+            dynamic objPoint = Activator.CreateInstance(SprImportedTypes.DrPointDbl);
 
             // Create the params
             int abortFlag;
@@ -337,23 +341,23 @@ namespace SharpPlant.SmartPlantReview
             int sprResult = DrApi.PointLocateDbl(prompt, out abortFlag, ref objPoint);
 
             // On error return null
-            return sprResult != 0 ? null : new Point3D(objPoint.East, objPoint.North, objPoint.Elevation);
+            return sprResult != 0 ? null : new SprPoint3D(objPoint.East, objPoint.North, objPoint.Elevation);
 
             // Return the new point
         }
 
         public int GetObjectId(string prompt)
         {
-            var pt = new Point3D();
+            var pt = new SprPoint3D();
             return GetObjectId(prompt, ref pt);
         }
 
-        public int GetObjectId(string prompt, ref Point3D refPoint)
+        public int GetObjectId(string prompt, ref SprPoint3D refPoint)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
             // Create the DrPointDbl
-            dynamic objPoint = Activator.CreateInstance(ImportedTypes.DrPointDbl);
+            dynamic objPoint = Activator.CreateInstance(SprImportedTypes.DrPointDbl);
 
             // Create the params
             const int filterFlag = 0;
@@ -376,31 +380,31 @@ namespace SharpPlant.SmartPlantReview
             return -1;
         }
 
-        public ObjectData GetObjectData(int objectId)
+        public SprObjectData GetObjectData(int objectId)
         {
             return GetObjectData(string.Empty, false, objectId);
         }
 
-        public ObjectData GetObjectData(string prompt)
+        public SprObjectData GetObjectData(string prompt)
         {
             return GetObjectData(prompt, false, 0);
         }
 
-        public ObjectData GetObjectData(string prompt, bool singleObject)
+        public SprObjectData GetObjectData(string prompt, bool singleObject)
         {
             return GetObjectData(prompt, singleObject, 0);
         }
 
-        public ObjectData GetObjectData(string prompt, bool singleObject, int objectId)
+        public SprObjectData GetObjectData(string prompt, bool singleObject, int objectId)
         {
             if (IsConnected)
             {
                 // Create the return object
-                var returnData = new ObjectData();
+                var returnData = new SprObjectData();
                 dynamic objData = returnData.DrObjectDataDbl;
 
                 // Create the DrPointDbl
-                dynamic selectPoint = Activator.CreateInstance(ImportedTypes.DrPointDbl);
+                dynamic selectPoint = Activator.CreateInstance(SprImportedTypes.DrPointDbl);
 
                 // Create the params
                 int flags = 0;
@@ -417,7 +421,7 @@ namespace SharpPlant.SmartPlantReview
                     sprResult = DrApi.ObjectLocateDbl(prompt, flags, out objectId, ref selectPoint);
 
                     // Set the selected point
-                    returnData.SelectedPoint = new Point3D(selectPoint.East, selectPoint.North, selectPoint.Elevation);
+                    returnData.SelectedPoint = new SprPoint3D(selectPoint.East, selectPoint.North, selectPoint.Elevation);
                 }
 
                 // Set the return object ID
@@ -459,19 +463,19 @@ namespace SharpPlant.SmartPlantReview
                 // Return null on error
                 return null;
             }
-            throw Exceptions.ApiNotConnected;
+            throw SprExceptions.ApiNotConnected;
         }
 
-        public ObjectData GetObjectData(string prompt, bool singleObject, Point3D target)
+        public SprObjectData GetObjectData(string prompt, bool singleObject, SprPoint3D target)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
             // Create the return object
-            var returnData = new ObjectData();
+            var returnData = new SprObjectData();
 
             // Create the DrPointDbl points
-            dynamic selectPoint = Activator.CreateInstance(ImportedTypes.DrPointDbl);
-            dynamic targetPoint = Activator.CreateInstance(ImportedTypes.DrPointDbl);
+            dynamic selectPoint = Activator.CreateInstance(SprImportedTypes.DrPointDbl);
+            dynamic targetPoint = Activator.CreateInstance(SprImportedTypes.DrPointDbl);
 
             // Set the target point values
             targetPoint.East = target.East;
@@ -492,7 +496,7 @@ namespace SharpPlant.SmartPlantReview
                                                          ref targetPoint, out objId, flags);
 
             // Set the selected point
-            returnData.SelectedPoint = new Point3D(selectPoint.East, selectPoint.North, selectPoint.Elevation);
+            returnData.SelectedPoint = new SprPoint3D(selectPoint.East, selectPoint.North, selectPoint.Elevation);
 
             // If the PointLocateExtendedDbl method suceeded
             return sprResult == 0 ? returnData : null;
@@ -509,15 +513,15 @@ namespace SharpPlant.SmartPlantReview
             if (IsConnected)
             {
                 // Send a blank string to the application text window
-                DrApi.TextWindow(Constants.TEXT_WIN_CLR, "Text View", string.Empty, 0);
+                DrApi.TextWindow(SprConstants.SprClearTextWindow, "Text View", string.Empty, 0);
             }
-            else throw Exceptions.ApiNotConnected;
+            else throw SprExceptions.ApiNotConnected;
         }
 
         public void TextWindow_Update(string mainText)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Get the existing title
             string existTitle = TextWindow_GetTitle();
@@ -531,15 +535,15 @@ namespace SharpPlant.SmartPlantReview
             if (IsConnected)
             {
                 // Set the text window and title contents
-                DrApi.TextWindow(Constants.TEXT_WIN_CLR, titleText, mainText, 0);
+                DrApi.TextWindow(SprConstants.SprClearTextWindow, titleText, mainText, 0);
             }
-            else throw Exceptions.ApiNotConnected;
+            else throw SprExceptions.ApiNotConnected;
         }
 
         public string TextWindow_GetTitle()
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Params for retrieving SPR data
             var orgTitle = string.Empty;
@@ -556,7 +560,7 @@ namespace SharpPlant.SmartPlantReview
         public string TextWindow_GetText()
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Params for retrieving SPR data
             var orgTitle = string.Empty;
@@ -581,14 +585,14 @@ namespace SharpPlant.SmartPlantReview
                 // Add the tag field to the MDB database
                 return DbMethods.AddDbField(MdbPath, fieldName);
             }
-            throw Exceptions.ApiNotConnected;
+            throw SprExceptions.ApiNotConnected;
         }
 
         #endregion
 
         #region Tagging
 
-        public bool Tags_Add(Tag tag)
+        public bool Tags_Add(SprTag tag)
         {
             return false;
         }
@@ -596,7 +600,7 @@ namespace SharpPlant.SmartPlantReview
         public bool Tags_Delete(int tagNo)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Delete the desired tag
             int sprResult = DrApi.TagDelete(tagNo, 0);
@@ -612,10 +616,10 @@ namespace SharpPlant.SmartPlantReview
             return false;
         }
 
-        public void Tags_Display(TagVisibility displayState)
+        public void Tags_Display(SprTagVisibility displayState)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Set SPR to the front
             Activate();
@@ -651,7 +655,7 @@ namespace SharpPlant.SmartPlantReview
                 // Return the result of the table update
                 return DbMethods.UpdateDbTable(MdbPath, siteTable);
             }
-            throw Exceptions.ApiNotConnected;
+            throw SprExceptions.ApiNotConnected;
         }
 
         public void Tags_Goto(int tagNo)
@@ -662,7 +666,7 @@ namespace SharpPlant.SmartPlantReview
         public void Tags_Goto(int tagNo, bool displayText)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             if (displayText)
             {
@@ -682,13 +686,13 @@ namespace SharpPlant.SmartPlantReview
             DrApi.GotoTag(tagNo, 0, 1);
         }
 
-        public Tag Tags_Get(int tagNo)
+        public SprTag Tags_Get(int tagNo)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Create the new tag
-            var returnTag = new Tag();
+            var returnTag = new SprTag();
 
             // Retrieve the site table
             var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
@@ -714,26 +718,26 @@ namespace SharpPlant.SmartPlantReview
             return null;
         }
 
-        public List<Tag> Tags_GetAll()
+        public List<SprTag> Tags_GetAll()
         {
             return null;
         }
 
         public bool Tags_Place(string tagText)
         {
-            var tag = new Tag {Text = tagText};
+            var tag = new SprTag {Text = tagText};
 
             return Tags_Place(ref tag);
         }
 
-        public bool Tags_Place(ref Tag tag)
+        public bool Tags_Place(ref SprTag tag)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Create the params
-            dynamic tagKey = Activator.CreateInstance(ImportedTypes.DrKey);
-            const int tagFlag = Constants.TAG_LEADER;
+            dynamic tagKey = Activator.CreateInstance(SprImportedTypes.DrKey);
+            const int tagFlag = SprConstants.SprTagLeader;
 
             // Set the tag key
             tagKey.LabelKey1 = 1;
@@ -762,7 +766,7 @@ namespace SharpPlant.SmartPlantReview
         public bool Tags_PlaceLeader(int tagNo)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Create the params
             var existData = string.Empty;
@@ -793,8 +797,8 @@ namespace SharpPlant.SmartPlantReview
                     if (Tags_SetNextTag(tagNo))
                     {
                         // Create the params
-                        dynamic tagKey = Activator.CreateInstance(ImportedTypes.DrKey);
-                        const int tagFlag = Constants.TAG_LEADER;
+                        dynamic tagKey = Activator.CreateInstance(SprImportedTypes.DrKey);
+                        const int tagFlag = SprConstants.SprTagLeader;
 
                         // Set the tag key
                         tagKey.LabelKey1 = 1;
@@ -817,7 +821,7 @@ namespace SharpPlant.SmartPlantReview
         public bool Tags_SetNextTag(int tagNo)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Get the current database
             var siteTable = DbMethods.GetDbTable(MdbPath, "site_table");
@@ -836,10 +840,10 @@ namespace SharpPlant.SmartPlantReview
             return false;
         }
 
-        public bool Tags_Update(Tag tag)
+        public bool Tags_Update(SprTag tag)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Retrieve the site table
             var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
@@ -871,38 +875,36 @@ namespace SharpPlant.SmartPlantReview
         public void Annotations_Display(bool visible)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Create the params
-            int sprResult;
 
             var visValue = Convert.ToInt32(visible);
 
             // Create the view object
-            dynamic objViewdataDbl = Activator.CreateInstance(ImportedTypes.DrViewDbl);
+            dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
 
             // Set the view object as the SPR Application main view
-            sprResult = DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            DrApi.ViewGetDbl(0, ref objViewdataDbl);
 
             // Apply the updated annotation display
             objViewdataDbl.AllAnnotationsDisplay = visValue;
 
             // Update the global properties
-            DrApi.GlobalOptionsSet(Constants.G_ANNO_DISPLAYED, visValue);
-            DrApi.GlobalOptionsSet(Constants.G_ANNO_TEXT_DISPLAYED, visValue);
+            DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDisplay, visValue);
+            DrApi.GlobalOptionsSet(SprConstants.SprGlobalTextDisplay, visValue);
 
             // Update the main view in SPR
-            sprResult = DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            DrApi.ViewSetDbl(0, ref objViewdataDbl);
         }
 
-        public void Annotations_Place(ref Annotation annotation)
+        public void Annotations_Place(ref SprAnnotation annotation)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Create the params
             int annoId;
-            int sprResult;
 
             // Get the annotation leader point
             var leaderObj = GetObjectData("SELECT A POINT ON AN OBJECT TO LOCATE THE ANNOTATION");
@@ -925,11 +927,11 @@ namespace SharpPlant.SmartPlantReview
             annotation.CenterPoint = centerObj.SelectedPoint;
 
             // Place the annotation on screen
-            sprResult = DrApi.AnnotationCreateDbl(annotation.Type, ref annotation.DrAnnotationDbl, out annoId);
+            DrApi.AnnotationCreateDbl(annotation.Type, ref annotation.DrAnnotationDbl, out annoId);
             annotation.AnnotationId = annoId;
 
             // Link the located object to the annotation
-            sprResult = DrApi.AnnotationDataSet(annoId, annotation.Type, ref annotation.DrAnnotationDbl, ref assocId);
+            DrApi.AnnotationDataSet(annoId, annotation.Type, ref annotation.DrAnnotationDbl, ref assocId);
             annotation.AssociatedObject = GetObjectData(assocId);
             annotation.AssociatedObject.SelectedPoint = annotation.LeaderPoint;
 
@@ -937,33 +939,32 @@ namespace SharpPlant.SmartPlantReview
             DrApi.ViewUpdate(1);
         }
 
-        public void Annotations_Add(Annotation annotation)
+        public void Annotations_Add(SprAnnotation annotation)
         {
         }
 
-        public void Annotations_Add(List<Annotation> annotations)
+        public void Annotations_Add(List<SprAnnotation> annotations)
         {
             foreach (var anno in annotations)
                 Annotations_Add(anno);
         }
 
-        public Annotation Annotations_Select(string type)
+        public SprAnnotation Annotations_Select(string type)
         {
             if (IsConnected)
             {
                 // Create the params
-                int sprResult;
                 int annoId;
 
                 // Create the return annotation object
-                var returnAnno = new Annotation();
+                var returnAnno = new SprAnnotation();
 
                 // Set the SPR application visible
                 Activate();
 
                 // Prompt the user to select the annotation
                 var msg = string.Format("SELECT THE DESIRED {0} ANNOTATION", type.ToUpper());
-                sprResult = DrApi.AnnotationLocate(type, msg, 0, out annoId);
+                int sprResult = DrApi.AnnotationLocate(type, msg, 0, out annoId);
 
                 // If the annotation locate was successful
                 if (sprResult == 0 && annoId != 0)
@@ -989,45 +990,41 @@ namespace SharpPlant.SmartPlantReview
                 // Return null on error
                 return null;
             }
-            throw Exceptions.ApiNotConnected;
+            throw SprExceptions.ApiNotConnected;
         }
 
         public void Annotations_Delete(string type)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Create the params
-            int sprResult;
             int annoId;
-
-            // Create the return annotation object
-            var returnAnno = new Annotation();
 
             // Set the SPR application visible
             Activate();
 
             // Prompt the user to select the annotation
             var msg = string.Format("SELECT THE {0} ANNOTATION TO DELETE", type.ToUpper());
-            sprResult = DrApi.AnnotationLocate(type, msg, 0, out annoId);
+            int sprResult = DrApi.AnnotationLocate(type, msg, 0, out annoId);
 
             // Return if the annotation locate was unsuccessful
             if (sprResult != 0 || annoId == 0) return;
 
             // Delete the selected annotation
-            sprResult = DrApi.AnnotationDelete(type, annoId, 0);
+            DrApi.AnnotationDelete(type, annoId, 0);
 
             // Update the main view
-            DrApi.ViewUpdate(Constants.MAIN_VIEW);
+            DrApi.ViewUpdate(SprConstants.SprMainView);
         }
 
         public void Annotations_DeleteType(string type)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Delete all annotations matching the provided type
-            int sprResult = DrApi.AnnotationDeleteAll(type, 0);
+            DrApi.AnnotationDeleteAll(type, 0);
 
             // Update the main view
             DrApi.ViewUpdate(1);
@@ -1036,10 +1033,7 @@ namespace SharpPlant.SmartPlantReview
         public void Annotations_DeleteAll()
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
-
-            // Set the params
-            int sprResult;
+                throw SprExceptions.ApiNotConnected;
 
             // Get the annotation types
             var typeTable = DbMethods.GetDbTable(MdbPath, "text_annotation_types");
@@ -1051,7 +1045,7 @@ namespace SharpPlant.SmartPlantReview
             for (var i = typeTable.Rows.Count - 1; i >= 0; i--)
             {
                 // Delete all annotations matching the current type
-                sprResult = DrApi.AnnotationDeleteAll(typeTable.Rows[i]["name"].ToString(), 0);
+                DrApi.AnnotationDeleteAll(typeTable.Rows[i]["name"].ToString(), 0);
             }
 
             // Update the main view
@@ -1062,7 +1056,7 @@ namespace SharpPlant.SmartPlantReview
 
         #region Snapshot
 
-        public bool TakeSnapshot(SnapShot snapShot, string imageName, string outputDir)
+        public bool TakeSnapshot(SprSnapShot snapShot, string imageName, string outputDir)
         {
             if (IsConnected)
             {
@@ -1070,16 +1064,16 @@ namespace SharpPlant.SmartPlantReview
                 var imgPath = Path.Combine(outputDir, string.Format("{0}.bmp", imageName));
 
                 // Take the snapshot
-                int sprResult = DrApi.SnapShot(imgPath, snapShot.Flags, snapShot.DrSnapShot, 0);
+                DrApi.SnapShot(imgPath, snapShot.Flags, snapShot.DrSnapShot, 0);
 
                 // Check if the file exists
                 if (!File.Exists(imgPath))
                     return false;
 
                 // Format the snapshot if required
-                return snapShot.OutputFormat == SnapshotFormat.Bmp || SnapShot.FormatSnapshot(imgPath, snapShot.OutputFormat);
+                return snapShot.OutputFormat == SprSnapshotFormat.Bmp || SprSnapShot.FormatSnapshot(imgPath, snapShot.OutputFormat);
             }
-            throw Exceptions.ApiNotConnected;
+            throw SprExceptions.ApiNotConnected;
         }
 
         #endregion
@@ -1088,22 +1082,19 @@ namespace SharpPlant.SmartPlantReview
 
         public void SetCenterPoint(double east, double north, double elevation)
         {
-            SetCenterPoint(new Point3D(east, north, elevation));
+            SetCenterPoint(new SprPoint3D(east, north, elevation));
         }
 
-        public void SetCenterPoint(Point3D centerPoint)
+        public void SetCenterPoint(SprPoint3D centerPoint)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
-
-            // Create the params
-            int sprResult;
+                throw SprExceptions.ApiNotConnected;
 
             // Create the DrViewDbl
-            dynamic objViewdataDbl = Activator.CreateInstance(ImportedTypes.DrViewDbl);
+            dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
 
             // Create the DrPointDbl
-            dynamic objCenterPoint = Activator.CreateInstance(ImportedTypes.DrPointDbl);
+            dynamic objCenterPoint = Activator.CreateInstance(SprImportedTypes.DrPointDbl);
 
             // Set the centerpoint values
             objCenterPoint.East = centerPoint.East;
@@ -1111,65 +1102,62 @@ namespace SharpPlant.SmartPlantReview
             objCenterPoint.Elevation = centerPoint.Elevation;
 
             // Set the view object as the SPR Application main view
-            sprResult = DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            DrApi.ViewGetDbl(0, ref objViewdataDbl);
 
             // Apply the updated centerpoint
             objViewdataDbl.CenterUorPoint = objCenterPoint;
 
             // Update the main view in SPR
-            sprResult = DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            DrApi.ViewSetDbl(0, ref objViewdataDbl);
         }
 
         public void SetEyePoint(double east, double north, double elevation)
         {
-            SetEyePoint(new Point3D(east, north, elevation));
+            SetEyePoint(new SprPoint3D(east, north, elevation));
         }
 
-        public void SetEyePoint(Point3D eyePoint)
+        public void SetEyePoint(SprPoint3D eyePoint)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
-
-            // Create the params
-            int sprResult;
+                throw SprExceptions.ApiNotConnected;
 
             // Create the DrViewDbl
-            dynamic objViewdataDbl = Activator.CreateInstance(ImportedTypes.DrViewDbl);
+            dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
 
             // Create the DrPointDbl
-            dynamic objEyePoint = Activator.CreateInstance(ImportedTypes.DrPointDbl);
+            dynamic objEyePoint = Activator.CreateInstance(SprImportedTypes.DrPointDbl);
 
             // Set the centerpoint values
             objEyePoint.East = eyePoint.East;
             objEyePoint.North = eyePoint.North;
 
             // Set the view object as the SPR Application main view
-            sprResult = DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            DrApi.ViewGetDbl(0, ref objViewdataDbl);
 
             // Apply the updated eyepoint
             objViewdataDbl.EyeUorPoint = objEyePoint;
 
             // Update the main view in SPR
-            sprResult = DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            DrApi.ViewSetDbl(0, ref objViewdataDbl);
         }
 
         #endregion
 
         #region Windows
 
-        public Window Window_Get(int windowNo)
+        public SprWindow Window_Get(int windowNo)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Create the params
             int drHwnd;
 
             // Create the SPRWindow
-            var curWin = new Window();
+            var curWin = new SprWindow();
 
             // Create the DrWindow
-            dynamic objWin = Activator.CreateInstance(ImportedTypes.DrWindow);
+            dynamic objWin;
             DrApi.WindowGet(windowNo, out objWin);
 
             // Get the window handle
@@ -1199,29 +1187,28 @@ namespace SharpPlant.SmartPlantReview
             return null;
         }
 
-        public void Window_Set(Window window)
+        public void Window_Set(SprWindow window)
         {
             if (!IsConnected)
-                throw Exceptions.ApiNotConnected;
+                throw SprExceptions.ApiNotConnected;
 
             // Create the DrWindow
-            dynamic objWin = Activator.CreateInstance(ImportedTypes.DrWindow);
+            dynamic objWin;
             DrApi.WindowGet(window.Index, out objWin);
 
-            // Set the DrWindow values
-            if (objWin != null)
-            {
-                // Set the new size
-                objWin.Height = window.Height;
-                objWin.Width = window.Width;
+            // Return if the DrWindow is null
+            if (objWin == null) return;
 
-                // Set the new position
-                if (window.Left > 0) objWin.Left = window.Left;
-                if (window.Top > 0) objWin.Top = window.Top;
+            // Set the new size
+            objWin.Height = window.Height;
+            objWin.Width = window.Width;
 
-                // Apply the updates
-                DrApi.WindowSet(window.Index, objWin);
-            }
+            // Set the new position
+            if (window.Left > 0) objWin.Left = window.Left;
+            if (window.Top > 0) objWin.Top = window.Top;
+
+            // Apply the updates
+            DrApi.WindowSet(window.Index, objWin);
         }
 
         #endregion

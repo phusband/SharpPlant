@@ -4,11 +4,8 @@ using System.Drawing;
 
 namespace SharpPlant.SmartPlantReview
 {
-    public static class SmartPlantReview
+    public static class SprUtilities
     {
-        // The static Application used to set the class parent object
-        internal static Application ActiveApplication;
-
         public static Dictionary<string, object> TagTemplate = new Dictionary<string, object>
             {
                 {"tag_unique", 0},
@@ -80,65 +77,4 @@ namespace SharpPlant.SmartPlantReview
             return Color.FromArgb(bytes[0], bytes[1], bytes[2]);
         }
     }
-
-    #region Enumerators
-
-    /// <summary>
-    ///     Controls tag visibility in the main view.
-    /// </summary>
-    public enum TagVisibility
-    {
-        // Each value corresponds to the ASCII character code
-        /// <summary>
-        ///     No tags displayed.
-        /// </summary>
-        None = 78, // N
-        /// <summary>
-        ///     Only the active tag displayed.
-        /// </summary>
-        ActiveOnly = 86, // V
-        /// <summary>
-        ///     All tags displayed.
-        /// </summary>
-        All = 76 // L
-    }
-
-    /// <summary>
-    ///     Controls the output format of snaphot objects.
-    /// </summary>
-    public enum SnapshotFormat
-    {
-        /// <summary>
-        ///     .bmp bitmap image format.
-        /// </summary>
-        Bmp = 0,
-
-        /// <summary>
-        ///     .jpg JPEG image format.
-        /// </summary>
-        Jpg = 1,
-
-        /// <summary>
-        ///     .png Raster image format.
-        /// </summary>
-        Png = 2,
-
-        /// <summary>
-        ///     .pdf Document format.
-        /// </summary>
-        Pdf = 3
-    }
-
-    /// <summary>
-    ///     Controls the measurement type of measurement objects.
-    /// </summary>
-    public enum MeasurementType
-    {
-        Null = -1,
-        Snaplock = 0,
-        Surface = 1,
-        ShortestDistance = 2
-    }
-
-    #endregion
 }

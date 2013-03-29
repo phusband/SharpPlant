@@ -3,14 +3,14 @@
     /// <summary>
     ///     Provides the structure containing information about a SmartPlant Review window.
     /// </summary>
-    public class Window
+    public class SprWindow
     {
         #region SPRWindow Properties
 
         /// <summary>
         ///     The parent Application reference.
         /// </summary>
-        public Application Application { get; private set; }
+        public SprApplication Application { get; private set; }
 
         /// <summary>
         ///     Height of the working area of the window.
@@ -45,10 +45,10 @@
         #endregion
 
         // SPRWindow initializer
-        internal Window()
+        internal SprWindow()
         {
             // Link the parent application
-            Application = SmartPlantReview.ActiveApplication;
+            Application = SprApplication.ActiveApplication;
         }
     }
 }

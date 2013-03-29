@@ -5,7 +5,7 @@ namespace SharpPlant.SmartPlantReview
     /// <summary>
     ///     Contains information about a particular measurement in the active Measurement Collection.
     /// </summary>
-    public class Measurement
+    public class SprMeasurement
     {
         #region Measurement Properties
 
@@ -17,7 +17,7 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     The parent Application reference.
         /// </summary>
-        public Application Application { get; private set; }
+        public SprApplication Application { get; private set; }
 
         /// <summary>
         ///     Distance between all previous points and this point.
@@ -58,12 +58,12 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     Primary point coordinate of the measurement.
         /// </summary>
-        public Point3D ActivePoint
+        public SprPoint3D ActivePoint
         {
             get
             {
                 if (IsActive)
-                    return new Point3D(DrMeasurement.Point.East,
+                    return new SprPoint3D(DrMeasurement.Point.East,
                                        DrMeasurement.Point.North,
                                        DrMeasurement.Point.Elevation);
                 return null;
@@ -80,12 +80,12 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     Prevous measurement point (if any).
         /// </summary>
-        public Point3D LastPoint
+        public SprPoint3D LastPoint
         {
             get
             {
                 if (IsActive)
-                    return new Point3D(DrMeasurement.LastPoint.East,
+                    return new SprPoint3D(DrMeasurement.LastPoint.East,
                                        DrMeasurement.LastPoint.North,
                                        DrMeasurement.LastPoint.Elevation);
                 return null;
@@ -102,12 +102,12 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     The Point coordinate of the text label location.
         /// </summary>
-        public Point3D TextPoint
+        public SprPoint3D TextPoint
         {
             get
             {
                 if (IsActive)
-                    return new Point3D(DrMeasurement.TextPoint.East,
+                    return new SprPoint3D(DrMeasurement.TextPoint.East,
                                        DrMeasurement.TextPoint.North,
                                        DrMeasurement.TextPoint.Elevation);
                 return null;
@@ -124,9 +124,9 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     Measurement type setting.
         /// </summary>
-        public MeasurementType Type
+        public SprMeasurementType Type
         {
-            get { return IsActive ? (MeasurementType) DrMeasurement.Type : MeasurementType.Null; }
+            get { return IsActive ? (SprMeasurementType) DrMeasurement.Type : SprMeasurementType.Null; }
             set { if (IsActive) DrMeasurement.Type = (int) value; }
         }
 
@@ -151,13 +151,13 @@ namespace SharpPlant.SmartPlantReview
         #endregion
 
         // Measurement initializer
-        public Measurement()
+        public SprMeasurement()
         {
             // Link the parent application
-            Application = SmartPlantReview.ActiveApplication;
+            Application = SprApplication.ActiveApplication;
 
             // Get a new DrPointDbl object
-            DrMeasurement = Activator.CreateInstance(ImportedTypes.DrMeasurement);
+            DrMeasurement = Activator.CreateInstance(SprImportedTypes.DrMeasurement);
         }
     }
 }

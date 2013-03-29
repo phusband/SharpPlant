@@ -7,23 +7,23 @@ namespace SharpPlant.SmartPlantReview
     /// <summary>
     ///     Provides the properties for creating a tag in SmartPlant Review.
     /// </summary>
-    public class Tag
+    public class SprTag
     {
         #region Tag Properties
 
         /// <summary>
         ///     The parent Application reference.
         /// </summary>
-        public Application Application { get; private set; }
+        public SprApplication Application { get; private set; }
 
         /// <summary>
         ///     Point where the tag is displayed.
         /// </summary>
-        public Point3D OriginPoint
+        public SprPoint3D OriginPoint
         {
             get
             {
-                return new Point3D(Convert.ToDouble(TagData["tag_origin_x"]),
+                return new SprPoint3D(Convert.ToDouble(TagData["tag_origin_x"]),
                                    Convert.ToDouble(TagData["tag_origin_y"]),
                                    Convert.ToDouble(TagData["tag_origin_z"]));
             }
@@ -38,11 +38,11 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     Point for the end of the leader.
         /// </summary>
-        public Point3D LeaderPoint
+        public SprPoint3D LeaderPoint
         {
             get
             {
-                return new Point3D(Convert.ToDouble(TagData["tag_point_x"]),
+                return new SprPoint3D(Convert.ToDouble(TagData["tag_point_x"]),
                                    Convert.ToDouble(TagData["tag_point_y"]),
                                    Convert.ToDouble(TagData["tag_point_z"]));
             }
@@ -93,8 +93,8 @@ namespace SharpPlant.SmartPlantReview
         /// </summary>
         public Color TextColor
         {
-            get { return SmartPlantReview.From0Bgr((int) TagData["number_color"]); }
-            set { TagData["number_color"] = SmartPlantReview.Get0Bgr(value); }
+            get { return SprUtilities.From0Bgr((int) TagData["number_color"]); }
+            set { TagData["number_color"] = SprUtilities.Get0Bgr(value); }
         }
 
         /// <summary>
@@ -102,8 +102,8 @@ namespace SharpPlant.SmartPlantReview
         /// </summary>
         public Color BackgroundColor
         {
-            get { return SmartPlantReview.From0Bgr((int) TagData["backgnd_color"]); }
-            set { TagData["backgnd_color"] = SmartPlantReview.Get0Bgr(value); }
+            get { return SprUtilities.From0Bgr((int) TagData["backgnd_color"]); }
+            set { TagData["backgnd_color"] = SprUtilities.Get0Bgr(value); }
         }
 
         /// <summary>
@@ -111,8 +111,8 @@ namespace SharpPlant.SmartPlantReview
         /// </summary>
         public Color LeaderColor
         {
-            get { return SmartPlantReview.From0Bgr((int) TagData["leader_color"]); }
-            set { TagData["leader_color"] = SmartPlantReview.Get0Bgr(value); }
+            get { return SprUtilities.From0Bgr((int) TagData["leader_color"]); }
+            set { TagData["leader_color"] = SprUtilities.Get0Bgr(value); }
         }
 
         /// <summary>
@@ -141,20 +141,20 @@ namespace SharpPlant.SmartPlantReview
         #endregion
 
         // Tag initializer
-        public Tag()
+        public SprTag()
         {
             // Link the parent application
-            Application = SmartPlantReview.ActiveApplication;
+            Application = SprApplication.ActiveApplication;
 
             // Create a new data dictionary from the template
-            TagData = SmartPlantReview.TagTemplate;
+            TagData = SprUtilities.TagTemplate;
 
             // Set the tag to the next available tag number
             TagNumber = Application.NextTag;
 
             // Add the default data values
-            BackgroundColor = SmartPlantReview.From0Bgr(12632319);
-            LeaderColor = SmartPlantReview.From0Bgr(12632319);
+            BackgroundColor = SprUtilities.From0Bgr(12632319);
+            LeaderColor = SprUtilities.From0Bgr(12632319);
         }
     }
 }

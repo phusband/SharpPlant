@@ -6,7 +6,7 @@ namespace SharpPlant.SmartPlantReview
     /// <summary>
     ///     Provides the properties for controlling text annotations in SmartPlant Review.
     /// </summary>
-    public class Annotation
+    public class SprAnnotation
     {
         #region Annotation Properties
 
@@ -18,15 +18,15 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     The parent Application reference.
         /// </summary>
-        public Application Application { get; private set; }
+        public SprApplication Application { get; private set; }
 
         /// <summary>
         ///     Annotation background color if visible (0BGR format).
         /// </summary>
         public Color BackgroundColor
         {
-            get { return IsActive ? SmartPlantReview.From0Bgr(DrAnnotationDbl.BackgroundColor) : Color.Empty; }
-            set { if (IsActive) DrAnnotationDbl.BackgroundColor = SmartPlantReview.Get0Bgr(value); }
+            get { return IsActive ? SprUtilities.From0Bgr(DrAnnotationDbl.BackgroundColor) : Color.Empty; }
+            set { if (IsActive) DrAnnotationDbl.BackgroundColor = SprUtilities.Get0Bgr(value); }
         }
 
         /// <summary>
@@ -34,8 +34,8 @@ namespace SharpPlant.SmartPlantReview
         /// </summary>
         public Color LineColor
         {
-            get { return IsActive ? SmartPlantReview.From0Bgr(DrAnnotationDbl.LineColor) : Color.Empty; }
-            set { if (IsActive) DrAnnotationDbl.LineColor = SmartPlantReview.Get0Bgr(value); }
+            get { return IsActive ? SprUtilities.From0Bgr(DrAnnotationDbl.LineColor) : Color.Empty; }
+            set { if (IsActive) DrAnnotationDbl.LineColor = SprUtilities.Get0Bgr(value); }
         }
 
         /// <summary>
@@ -43,19 +43,19 @@ namespace SharpPlant.SmartPlantReview
         /// </summary>
         public Color TextColor
         {
-            get { return IsActive ? SmartPlantReview.From0Bgr(DrAnnotationDbl.TextColor) : Color.Empty; }
-            set { if (IsActive) DrAnnotationDbl.TextColor = SmartPlantReview.Get0Bgr(value); }
+            get { return IsActive ? SprUtilities.From0Bgr(DrAnnotationDbl.TextColor) : Color.Empty; }
+            set { if (IsActive) DrAnnotationDbl.TextColor = SprUtilities.Get0Bgr(value); }
         }
 
         /// <summary>
         ///     Center point of the annotation object.
         /// </summary>
-        public Point3D CenterPoint
+        public SprPoint3D CenterPoint
         {
             get
             {
                 if (IsActive)
-                    return new Point3D(DrAnnotationDbl.CenterPoint.East,
+                    return new SprPoint3D(DrAnnotationDbl.CenterPoint.East,
                                        DrAnnotationDbl.CenterPoint.North,
                                        DrAnnotationDbl.CenterPoint.Elevation);
                 return null;
@@ -72,12 +72,12 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     End point of the leader line.
         /// </summary>
-        public Point3D LeaderPoint
+        public SprPoint3D LeaderPoint
         {
             get
             {
                 if (IsActive)
-                    return new Point3D(DrAnnotationDbl.LeaderPoint.East,
+                    return new SprPoint3D(DrAnnotationDbl.LeaderPoint.East,
                                        DrAnnotationDbl.LeaderPoint.North,
                                        DrAnnotationDbl.LeaderPoint.Elevation);
                 return null;
@@ -99,13 +99,13 @@ namespace SharpPlant.SmartPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (DrAnnotationDbl.Flags & Constants.ANNO_LEADER) != 0;
+                return (DrAnnotationDbl.Flags & SprConstants.SprAnnoLeader) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) DrAnnotationDbl.Flags |= Constants.ANNO_LEADER;
-                else DrAnnotationDbl.Flags &= ~Constants.ANNO_LEADER;
+                if (value) DrAnnotationDbl.Flags |= SprConstants.SprAnnoLeader;
+                else DrAnnotationDbl.Flags &= ~SprConstants.SprAnnoLeader;
             }
         }
 
@@ -117,13 +117,13 @@ namespace SharpPlant.SmartPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (DrAnnotationDbl.Flags & Constants.ANNO_ARROW) != 0;
+                return (DrAnnotationDbl.Flags & SprConstants.SprAnnoArrow) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) DrAnnotationDbl.Flags |= Constants.ANNO_ARROW;
-                else DrAnnotationDbl.Flags &= ~Constants.ANNO_ARROW;
+                if (value) DrAnnotationDbl.Flags |= SprConstants.SprAnnoArrow;
+                else DrAnnotationDbl.Flags &= ~SprConstants.SprAnnoArrow;
             }
         }
 
@@ -135,13 +135,13 @@ namespace SharpPlant.SmartPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (DrAnnotationDbl.Flags & Constants.ANNO_BACKGROUND) != 0;
+                return (DrAnnotationDbl.Flags & SprConstants.SprAnnoBackground) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) DrAnnotationDbl.Flags |= Constants.ANNO_BACKGROUND;
-                else DrAnnotationDbl.Flags &= ~Constants.ANNO_BACKGROUND;
+                if (value) DrAnnotationDbl.Flags |= SprConstants.SprAnnoBackground;
+                else DrAnnotationDbl.Flags &= ~SprConstants.SprAnnoBackground;
             }
         }
 
@@ -153,13 +153,13 @@ namespace SharpPlant.SmartPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (DrAnnotationDbl.Flags & Constants.ANNO_PERSIST) != 0;
+                return (DrAnnotationDbl.Flags & SprConstants.SprAnnoPersist) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) DrAnnotationDbl.Flags |= Constants.ANNO_PERSIST;
-                else DrAnnotationDbl.Flags &= ~Constants.ANNO_PERSIST;
+                if (value) DrAnnotationDbl.Flags |= SprConstants.SprAnnoPersist;
+                else DrAnnotationDbl.Flags &= ~SprConstants.SprAnnoPersist;
             }
         }
 
@@ -180,7 +180,7 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     The object associated with the annotation.
         /// </summary>
-        public ObjectData AssociatedObject { get; internal set; }
+        public SprObjectData AssociatedObject { get; internal set; }
 
         /// <summary>
         ///     Annotation type.
@@ -190,30 +190,30 @@ namespace SharpPlant.SmartPlantReview
         // Determines if a reference to the COM object is established
         private bool IsActive
         {
-            get { return (DrAnnotationDbl != null); }
+            get { return DrAnnotationDbl != null; }
         }
 
         #endregion
 
         // Annotation initializer
-        public Annotation()
+        public SprAnnotation()
         {
             // Link the parent application
-            Application = SmartPlantReview.ActiveApplication;
+            Application = SprApplication.ActiveApplication;
 
             // Get a new DrAnnotationDbl object
-            DrAnnotationDbl = Activator.CreateInstance(ImportedTypes.DrAnnotationDbl);
+            DrAnnotationDbl = Activator.CreateInstance(SprImportedTypes.DrAnnotationDbl);
 
             // Set the default flags
-            DrAnnotationDbl.Flags = 5;
+            DrAnnotationDbl.Flags |= SprConstants.SprAnnoLeader | SprConstants.SprAnnoBackground;
 
             // Set the default annotation type
             Type = "Standard";
 
             // Set the default colors
-            BackgroundColor = SmartPlantReview.From0Bgr(8454143);
-            LineColor = SmartPlantReview.From0Bgr(8454143);
-            TextColor = SmartPlantReview.From0Bgr(0);
+            BackgroundColor = SprUtilities.From0Bgr(8454143);
+            LineColor = SprUtilities.From0Bgr(8454143);
+            TextColor = SprUtilities.From0Bgr(0);
         }
     }
 }

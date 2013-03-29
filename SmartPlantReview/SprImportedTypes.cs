@@ -2,7 +2,7 @@
 
 namespace SharpPlant.SmartPlantReview
 {
-    internal static class ImportedTypes
+    internal static class SprImportedTypes
     {
         internal static Type DrApi = Type.GetTypeFromProgID("DrApi.DrApi.1");
         internal static Type DrAnnotationDbl = Type.GetTypeFromProgID("DrAnnotationDbl.DrAnnotationDbl.1");

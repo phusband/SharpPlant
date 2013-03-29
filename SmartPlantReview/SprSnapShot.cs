@@ -11,7 +11,7 @@ namespace SharpPlant.SmartPlantReview
     /// <summary>
     ///     Provides the properties for creating a snapshot in SmartPlant Review.
     /// </summary>
-    public class SnapShot
+    public class SprSnapShot
     {
         #region SnapShot Properties
 
@@ -20,13 +20,15 @@ namespace SharpPlant.SmartPlantReview
         /// </summary>
         internal dynamic DrSnapShot;
 
-        // Controls the DrSnapShot flag
+        /// <summary>
+        ///     Holds the snapshot bitmask values used in the DrApi.SnapShot method.
+        /// </summary>
         internal int Flags;
 
         /// <summary>
         ///     The parent Application reference.
         /// </summary>
-        public Application Application { get; private set; }
+        public SprApplication Application { get; private set; }
 
         /// <summary>
         ///     Anti-aliasing factor (1 to 4); 1 = no anti-aliasing.
@@ -96,7 +98,7 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     Output format of the snapshot.
         /// </summary>
-        public SnapshotFormat OutputFormat { get; set; }
+        public SprSnapshotFormat OutputFormat { get; set; }
 
         /// <summary>
         ///     Determines whether the snapshot will overwrite an existing snapshot of the same name.
@@ -106,13 +108,13 @@ namespace SharpPlant.SmartPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (Flags & Constants.FILE_OVERWRITE_OK) != 0;
+                return (Flags & SprConstants.SprSnapOverwrite) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) Flags |= Constants.FILE_OVERWRITE_OK;
-                else Flags &= ~Constants.FILE_OVERWRITE_OK;
+                if (value) Flags |= SprConstants.SprSnapOverwrite;
+                else Flags &= ~SprConstants.SprSnapOverwrite;
             }
         }
 
@@ -124,13 +126,13 @@ namespace SharpPlant.SmartPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (Flags & Constants.SNAP_FULL_SCREEN) != 0;
+                return (Flags & SprConstants.SprSnapFullscreen) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) Flags |= Constants.SNAP_FULL_SCREEN;
-                else Flags &= ~Constants.SNAP_FULL_SCREEN;
+                if (value) Flags |= SprConstants.SprSnapFullscreen;
+                else Flags &= ~SprConstants.SprSnapFullscreen;
             }
         }
 
@@ -142,13 +144,13 @@ namespace SharpPlant.SmartPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (Flags & Constants.SNAP_ROTATE_90) != 0;
+                return (Flags & SprConstants.SprSnapRotate90) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) Flags |= Constants.SNAP_ROTATE_90;
-                else Flags &= ~Constants.SNAP_ROTATE_90;
+                if (value) Flags |= SprConstants.SprSnapRotate90;
+                else Flags &= ~SprConstants.SprSnapRotate90;
             }
         }
 
@@ -160,13 +162,13 @@ namespace SharpPlant.SmartPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (Flags & Constants.SNAP_ASPECT_ON) != 0;
+                return (Flags & SprConstants.SprSnapAspectOn) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) Flags |= Constants.SNAP_ASPECT_ON;
-                else Flags &= ~Constants.SNAP_ASPECT_ON;
+                if (value) Flags |= SprConstants.SprSnapAspectOn;
+                else Flags &= ~SprConstants.SprSnapAspectOn;
             }
         }
 
@@ -179,41 +181,27 @@ namespace SharpPlant.SmartPlantReview
         #endregion
 
         // SnapShot initializer
-        public SnapShot()
+        public SprSnapShot()
         {
             // Link the parent application
-            Application = SmartPlantReview.ActiveApplication;
+            Application = SprApplication.ActiveApplication;
 
             // Get a new DrSnapShot object
-            DrSnapShot = Activator.CreateInstance(ImportedTypes.DrSnapShot);
+            DrSnapShot = Activator.CreateInstance(SprImportedTypes.DrSnapShot);
 
             // Set the default settings flags
-            Flags |= Constants.FILE_OVERWRITE_OK | Constants.SNAP_FORCE_BMP;
+            Flags |= SprConstants.SprSnapOverwrite | SprConstants.SprSnapForceBmp;
 
             // Set the Antialias default
             AntiAlias = 2;
 
-            // Set the default size values
-            try
-            {
-                // Get the application's main window size 
-                dynamic drWindow = Activator.CreateInstance(ImportedTypes.DrWindow);
-                Application.DrApi.WindowGet(0, drWindow);
-
-                // Set the returned sizes
-                Height = drWindow.Height;
-                Width = drWindow.Width;
-            }
-            catch
-            {
-                // On error manually set the values
-                Height = 800;
-                Width = 1000;
-            }
+            // Set the default size based on the main window 
+            Height = Application.MainWindow.Height;
+            Width = Application.MainWindow.Width;
         }
 
         // Internal snapshot methods
-        internal static bool FormatSnapshot(string imagePath, SnapshotFormat format)
+        internal static bool FormatSnapshot(string imagePath, SprSnapshotFormat format)
         {
             // Get the saved image
             var curImage = Image.FromFile(imagePath);
@@ -234,22 +222,26 @@ namespace SharpPlant.SmartPlantReview
             switch (format)
             {
                 // Save as PNG
-                case SnapshotFormat.Png:
+                case SprSnapshotFormat.Png:
                     result.Save(imagePath.Replace(".bmp", ".png"), ImageFormat.Png);
                     break;
 
                 // Save as JPG
-                case SnapshotFormat.Jpg:
+                case SprSnapshotFormat.Jpg:
                     {
-                        // Create a custom JPG encoder to manually set the quality
-                        var jpgEncoder = GetEncoder(ImageFormat.Jpeg);
-                        var encodeQuality = Encoder.Quality;
-                        var encodeParams = new EncoderParameters(1);
-                        var qualityParam = new EncoderParameter(encodeQuality, 95L);
-                        encodeParams.Param[0] = qualityParam;
+                        // Create a custom JPG encoder
+                        var jpgEncoder = ImageCodecInfo.GetImageDecoders().FirstOrDefault(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
+                        if (jpgEncoder != null)
+                        {
+                            // Set the image quality
+                            var encodeQuality = Encoder.Quality;
+                            var encodeParams = new EncoderParameters(1);
+                            var qualityParam = new EncoderParameter(encodeQuality, 95L);
+                            encodeParams.Param[0] = qualityParam;
 
-                        // Save to JPG using the custom encoder
-                        result.Save(imagePath.Replace(".bmp", ".jpg"), jpgEncoder, encodeParams);
+                            // Save to JPG using the custom encoder
+                            result.Save(imagePath.Replace(".bmp", ".jpg"), jpgEncoder, encodeParams);
+                        }
                     }
                     break;
             }
@@ -270,12 +262,6 @@ namespace SharpPlant.SmartPlantReview
             }
 
             return true;
-        }
-
-        internal static ImageCodecInfo GetEncoder(ImageFormat format)
-        {
-            var codecs = ImageCodecInfo.GetImageDecoders();
-            return codecs.FirstOrDefault(codec => codec.FormatID == format.Guid);
         }
     }
 }

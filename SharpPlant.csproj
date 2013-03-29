@@ -42,19 +42,22 @@
   <ItemGroup>
     <Compile Include="DbMethods.cs" />
     <Compile Include="NativeWin32.cs" />
-    <Compile Include="SmartPlantReview\Annotation.cs" />
-    <Compile Include="SmartPlantReview\Application.cs" />
-    <Compile Include="SmartPlantReview\Constants.cs" />
-    <Compile Include="SmartPlantReview\Exceptions.cs" />
-    <Compile Include="SmartPlantReview\ImportedTypes.cs" />
-    <Compile Include="SmartPlantReview\Measurement.cs" />
-    <Compile Include="SmartPlantReview\ObjectData.cs" />
-    <Compile Include="SmartPlantReview\Point3D.cs" />
-    <Compile Include="SmartPlantReview\SmartPlantReview.cs" />
+    <Compile Include="SmartPlantReview\SprAnnotation.cs" />
+    <Compile Include="SmartPlantReview\SprApplication.cs" />
+    <Compile Include="SmartPlantReview\SprConstants.cs" />
+    <Compile Include="SmartPlantReview\SprExceptions.cs" />
+    <Compile Include="SmartPlantReview\SprImportedTypes.cs" />
+    <Compile Include="SmartPlantReview\SprMeasurement.cs" />
+    <Compile Include="SmartPlantReview\SprMeasurementType.cs" />
+    <Compile Include="SmartPlantReview\SprObjectData.cs" />
+    <Compile Include="SmartPlantReview\SprPoint3D.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SmartPlantReview\SnapShot.cs" />
-    <Compile Include="SmartPlantReview\Tag.cs" />
-    <Compile Include="SmartPlantReview\Window.cs" />
+    <Compile Include="SmartPlantReview\SprSnapShot.cs" />
+    <Compile Include="SmartPlantReview\SprSnapshotFormat.cs" />
+    <Compile Include="SmartPlantReview\SprTag.cs" />
+    <Compile Include="SmartPlantReview\SprTagVisibility.cs" />
+    <Compile Include="SmartPlantReview\SprUtilities.cs" />
+    <Compile Include="SmartPlantReview\SprWindow.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
