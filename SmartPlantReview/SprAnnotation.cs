@@ -54,11 +54,7 @@ namespace SharpPlant.SmartPlantReview
         {
             get
             {
-                if (IsActive)
-                    return new SprPoint3D(DrAnnotationDbl.CenterPoint.East,
-                                       DrAnnotationDbl.CenterPoint.North,
-                                       DrAnnotationDbl.CenterPoint.Elevation);
-                return null;
+                return IsActive ? new SprPoint3D(DrAnnotationDbl.CenterPoint) : null;
             }
             set
             {
@@ -76,11 +72,7 @@ namespace SharpPlant.SmartPlantReview
         {
             get
             {
-                if (IsActive)
-                    return new SprPoint3D(DrAnnotationDbl.LeaderPoint.East,
-                                       DrAnnotationDbl.LeaderPoint.North,
-                                       DrAnnotationDbl.LeaderPoint.Elevation);
-                return null;
+                return IsActive ? new SprPoint3D(DrAnnotationDbl.LeaderPoint) : null;
             }
             set
             {

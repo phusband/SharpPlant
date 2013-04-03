@@ -48,6 +48,7 @@
     <Compile Include="SmartPlantReview\SprExceptions.cs" />
     <Compile Include="SmartPlantReview\SprImportedTypes.cs" />
     <Compile Include="SmartPlantReview\SprMeasurement.cs" />
+    <Compile Include="SmartPlantReview\SprMeasurementCollection.cs" />
     <Compile Include="SmartPlantReview\SprMeasurementType.cs" />
     <Compile Include="SmartPlantReview\SprObjectData.cs" />
     <Compile Include="SmartPlantReview\SprPoint3D.cs" />
@@ -59,7 +60,6 @@
     <Compile Include="SmartPlantReview\SprUtilities.cs" />
     <Compile Include="SmartPlantReview\SprWindow.cs" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

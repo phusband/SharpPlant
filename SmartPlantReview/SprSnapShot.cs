@@ -230,7 +230,12 @@ namespace SharpPlant.SmartPlantReview
                 case SprSnapshotFormat.Jpg:
                     {
                         // Create a custom JPG encoder
-                        var jpgEncoder = ImageCodecInfo.GetImageDecoders().FirstOrDefault(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
+                        var jpgEncoder = ImageCodecInfo.GetImageDecoders().FirstOrDefault
+                            (
+                                // Get the matching codec
+                                codec => codec.FormatID == ImageFormat.Jpeg.Guid
+                            );
+
                         if (jpgEncoder != null)
                         {
                             // Set the image quality

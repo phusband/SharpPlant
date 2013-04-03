@@ -29,6 +29,14 @@
         {
         }
 
+        internal SprPoint3D(dynamic drPointDbl)
+        {
+            // Set the coordinates
+            East = drPointDbl.East;
+            North = drPointDbl.North;
+            Elevation = drPointDbl.Elevation;
+        }
+
         public SprPoint3D(double east, double north, double elevation)
         {
             // Set the coordinates

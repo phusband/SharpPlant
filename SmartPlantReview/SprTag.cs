@@ -17,6 +17,29 @@ namespace SharpPlant.SmartPlantReview
         public SprApplication Application { get; private set; }
 
         /// <summary>
+        ///     Holds the tag bitmask values used for tag placement.
+        /// </summary>
+        internal int Flags;
+
+        /// <summary>
+        ///     Indicates whether a leader will be present.
+        /// </summary>
+        public bool DisplayLeader
+        {
+            get
+            {
+                // Return the bitwise zero check
+                return (Flags & SprConstants.SprTagLeader) != 0;
+            }
+            set
+            {
+                // Set flag true/false
+                if (value) Flags |= SprConstants.SprTagLeader;
+                else Flags &= ~SprConstants.SprTagLeader;
+            }
+        }
+
+        /// <summary>
         ///     Point where the tag is displayed.
         /// </summary>
         public SprPoint3D OriginPoint

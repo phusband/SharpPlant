@@ -98,7 +98,7 @@ namespace SharpPlant
                 // Return false on error
                 catch (OleDbException ex)
                 {
-                    // Return true if the field already exists
+                    // Return true if the field already exists, otherwise false
                     return ex.ErrorCode == -2147217887;
                 }
             }
@@ -175,6 +175,9 @@ namespace SharpPlant
 
             // Build the command string
             var sb = new StringBuilder(string.Format("ALTER TABLE {0} ADD COLUMN ", tableName));
+
+            // Replace any spaces from the field name
+            fieldName = fieldName.Replace(' ', '_');
 
             // Append the column details
             sb.AppendFormat("{0} TEXT(255), ", fieldName);

@@ -2,11 +2,14 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
+using SharpPlant.SmartPlantReview;
+
 namespace SharpPlant
 {
     internal class NativeWin32
     {
         public delegate int EnumWindowsProcDelegate(int hWnd, int lParam);
+        public delegate bool EnumChildCallback(int hwnd, ref int lParam);
 
         public const int WM_SYSCOMMAND = 0x0112;
         public const int SC_CLOSE = 0xF060;
@@ -30,6 +33,22 @@ namespace SharpPlant
             IntPtr hDlg, // parent hwnd
             int nIdDlgItem // controlID
             );
+
+        [DllImport("Oleacc.dll")]
+        public static extern int AccessibleObjectFromWindow(
+            int hwnd,
+            uint dwObjectID,
+            byte[] riid,
+            ref dynamic ptr
+            );
+
+        [DllImport("User32.dll")]
+        public static extern bool EnumChildWindows(
+            int hWndParent,
+            EnumChildCallback lpEnumFunc,
+            ref int lParam
+            );
+
 
         // Gets the 'nth' Window of the parent dialog based on the class name
         public static IntPtr FindWindowByIndex(IntPtr hWndParent, int index)
@@ -66,6 +85,13 @@ namespace SharpPlant
         [DllImport("user32.dll")]
         public static extern int SetForegroundWindow(
             int hWnd // handle to window
+            );
+
+        [DllImport("User32.dll")]
+        public static extern int GetClassName(
+            int hWnd,
+            StringBuilder lpClassName,
+            int nMaxCount
             );
 
         [DllImport("user32")]

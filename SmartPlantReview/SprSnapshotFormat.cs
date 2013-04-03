@@ -20,10 +20,5 @@ namespace SharpPlant.SmartPlantReview
         ///     .png Raster image format.
         /// </summary>
         Png = 2,
-
-        /// <summary>
-        ///     .pdf Document format.
-        /// </summary>
-        Pdf = 3
     }
 }
