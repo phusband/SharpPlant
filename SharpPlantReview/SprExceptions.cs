@@ -5,7 +5,7 @@
 
 using System;
 
-namespace SharpPlant.SmartPlantReview
+namespace SharpPlant.SharpPlantReview
 {
     internal static class SprExceptions
     {

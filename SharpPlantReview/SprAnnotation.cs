@@ -6,7 +6,7 @@
 using System;
 using System.Drawing;
 
-namespace SharpPlant.SmartPlantReview
+namespace SharpPlant.SharpPlantReview
 {
     /// <summary>
     ///     Provides the properties for controlling text annotations in SmartPlant Review.

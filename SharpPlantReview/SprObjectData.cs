@@ -6,7 +6,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace SharpPlant.SmartPlantReview
+namespace SharpPlant.SharpPlantReview
 {
     /// <summary>
     ///     Contains information about a particular SmartPlant Review object.

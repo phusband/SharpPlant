@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using Microsoft.Win32;
 
-namespace SharpPlant.SmartPlantReview
+namespace SharpPlant.SharpPlantReview
 {
     public static class SprUtilities
     {
@@ -70,17 +70,17 @@ namespace SharpPlant.SmartPlantReview
             };
 
             // Open the SmartPlant Review tag registry
-            var regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags\";
+            const string regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags\";
             using (var regKey = Registry.CurrentUser.OpenSubKey(regPath, true))
             {
                 // Iterate through the attributes
-                for (int i = 0; i < tagAtts.Count; i++)
+                foreach (var att in tagAtts)
                 {
                     // Get the subkey name (prefixed with "Default" per Spr formatting)
-                    var valString = string.Format("Default{0}", tagAtts[i].Item1);
+                    var valString = string.Format("Default{0}", att.Item1);
 
                     // Set the subkey values from the current tuple
-                    regKey.SetValue(valString, tagAtts[i].Item2, tagAtts[i].Item3);
+                    regKey.SetValue(valString, att.Item2, att.Item3);
                 }
             }
         }
@@ -91,17 +91,17 @@ namespace SharpPlant.SmartPlantReview
         public static void ClearTagRegistry()
         {
             // Open the SmartPlant Review tag registry
-            var regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags";
+            const string regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags";
             using (var regKey = Registry.CurrentUser.OpenSubKey(regPath, true))
             {
                 // Get the list of values
                 var values = regKey.GetValueNames();
 
                 // Iterate through the values
-                for (int i = 0; i < values.Length; i++)
+                foreach (var t in values)
                 {
                     // Delete the current value
-                    regKey.DeleteValue(values[i]);
+                    regKey.DeleteValue(t);
                 }
             }
         }

@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using System.Threading;
 
-namespace SharpPlant.SmartPlantReview
+namespace SharpPlant.SharpPlantReview
 {
     /// <summary>
     ///     Provides methods and properties for interacting with SmartPlant Review.

@@ -11,7 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 
-namespace SharpPlant.SmartPlantReview
+namespace SharpPlant.SharpPlantReview
 {
     /// <summary>
     ///     Provides the properties for creating a snapshot in SmartPlant Review.

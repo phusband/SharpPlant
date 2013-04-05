@@ -3,7 +3,7 @@
 //  The MIT License (MIT) - See LICENSE.txt for further details.
 //
 
-namespace SharpPlant.SmartPlantReview
+namespace SharpPlant.SharpPlantReview
 {
     /// <summary>
     ///     Controls the output format of snaphot objects.

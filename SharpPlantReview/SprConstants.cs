@@ -3,7 +3,7 @@
 //  The MIT License (MIT) - See LICENSE.txt for further details.
 //
 
-namespace SharpPlant.SmartPlantReview
+namespace SharpPlant.SharpPlantReview
 {
     /// <summary>
     ///     Contains application constants used by SmartPlant Review.

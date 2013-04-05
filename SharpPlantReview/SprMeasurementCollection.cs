@@ -3,12 +3,7 @@
 //  The MIT License (MIT) - See LICENSE.txt for further details.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace SharpPlant.SmartPlantReview
+namespace SharpPlant.SharpPlantReview
 {
     class SprMeasurementCollection
     {

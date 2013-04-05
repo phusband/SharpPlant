@@ -42,23 +42,23 @@
   <ItemGroup>
     <Compile Include="DbMethods.cs" />
     <Compile Include="NativeWin32.cs" />
-    <Compile Include="SmartPlantReview\SprAnnotation.cs" />
-    <Compile Include="SmartPlantReview\SprApplication.cs" />
-    <Compile Include="SmartPlantReview\SprConstants.cs" />
-    <Compile Include="SmartPlantReview\SprExceptions.cs" />
-    <Compile Include="SmartPlantReview\SprImportedTypes.cs" />
-    <Compile Include="SmartPlantReview\SprMeasurement.cs" />
-    <Compile Include="SmartPlantReview\SprMeasurementCollection.cs" />
-    <Compile Include="SmartPlantReview\SprMeasurementType.cs" />
-    <Compile Include="SmartPlantReview\SprObjectData.cs" />
-    <Compile Include="SmartPlantReview\SprPoint3D.cs" />
+    <Compile Include="SharpPlantReview\SprAnnotation.cs" />
+    <Compile Include="SharpPlantReview\SprApplication.cs" />
+    <Compile Include="SharpPlantReview\SprConstants.cs" />
+    <Compile Include="SharpPlantReview\SprExceptions.cs" />
+    <Compile Include="SharpPlantReview\SprImportedTypes.cs" />
+    <Compile Include="SharpPlantReview\SprMeasurement.cs" />
+    <Compile Include="SharpPlantReview\SprMeasurementCollection.cs" />
+    <Compile Include="SharpPlantReview\SprMeasurementType.cs" />
+    <Compile Include="SharpPlantReview\SprObjectData.cs" />
+    <Compile Include="SharpPlantReview\SprPoint3D.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SmartPlantReview\SprSnapShot.cs" />
-    <Compile Include="SmartPlantReview\SprSnapshotFormat.cs" />
-    <Compile Include="SmartPlantReview\SprTag.cs" />
-    <Compile Include="SmartPlantReview\SprTagVisibility.cs" />
-    <Compile Include="SmartPlantReview\SprUtilities.cs" />
-    <Compile Include="SmartPlantReview\SprWindow.cs" />
+    <Compile Include="SharpPlantReview\SprSnapShot.cs" />
+    <Compile Include="SharpPlantReview\SprSnapshotFormat.cs" />
+    <Compile Include="SharpPlantReview\SprTag.cs" />
+    <Compile Include="SharpPlantReview\SprTagVisibility.cs" />
+    <Compile Include="SharpPlantReview\SprUtilities.cs" />
+    <Compile Include="SharpPlantReview\SprWindow.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -5,7 +5,7 @@
 
 using System;
 
-namespace SharpPlant.SmartPlantReview
+namespace SharpPlant.SharpPlantReview
 {
     /// <summary>
     ///     Contains information about a particular measurement in the active Measurement Collection.
