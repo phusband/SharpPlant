@@ -2,8 +2,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-using SharpPlant.SmartPlantReview;
-
 namespace SharpPlant
 {
     internal class NativeWin32

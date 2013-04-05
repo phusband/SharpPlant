@@ -1,4 +1,9 @@
-﻿namespace SharpPlant.SmartPlantReview
+﻿//
+//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  The MIT License (MIT) - See LICENSE.txt for further details.
+//
+
+namespace SharpPlant.SmartPlantReview
 {
     /// <summary>
     ///     Provides the structure for a 3D point in SmartPlant Review.
@@ -8,37 +13,65 @@
         #region Point3D Properties
 
         /// <summary>
+        ///     Active COM reference to the DrPointDbl class.
+        /// </summary>
+        internal dynamic DrPointDbl;
+
+        /// <summary>
         ///     Easting coordinate
         /// </summary>
-        public double East { get; set; }
+        public double East
+        {
+            get { return IsActive ? DrPointDbl.East : -1; }
+            set { if (IsActive) DrPointDbl.East = value; }
+        }
 
         /// <summary>
         ///     Northing coordinate
         /// </summary>
-        public double North { get; set; }
+        public double North
+        {
+            get { return IsActive ? DrPointDbl.North : -1; }
+            set { if (IsActive) DrPointDbl.North = value; }
+        }
 
         /// <summary>
         ///     Elevation coordinate
         /// </summary>
-        public double Elevation { get; set; }
+        public double Elevation
+        {
+            get { return IsActive ? DrPointDbl.Elevation : -1; }
+            set { if (IsActive) DrPointDbl.Elevation = value; }
+        }
+
+        // Determines if a reference to the COM object is established
+        private bool IsActive
+        {
+            get { return DrPointDbl != null; }
+        }
 
         #endregion
 
-        // Point3D initializers
+        // Point3D constructors
         public SprPoint3D()
         {
+            // Create the DrPointDbl
+            DrPointDbl = System.Activator.CreateInstance(SprImportedTypes.DrPointDbl);
+            if (DrPointDbl == null) throw SprExceptions.SprObjectCreateFail;
         }
 
         internal SprPoint3D(dynamic drPointDbl)
         {
-            // Set the coordinates
-            East = drPointDbl.East;
-            North = drPointDbl.North;
-            Elevation = drPointDbl.Elevation;
+            // Set the DrPointDbl and coordinates
+            DrPointDbl = drPointDbl;
         }
 
         public SprPoint3D(double east, double north, double elevation)
         {
+            // Create the DrPointDbl
+            DrPointDbl = System.Activator.CreateInstance(SprImportedTypes.DrPointDbl);
+            if (DrPointDbl == null) throw SprExceptions.SprObjectCreateFail;
+
             // Set the coordinates
             East = east;
             North = north;

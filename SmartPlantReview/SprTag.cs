@@ -1,4 +1,9 @@
-﻿using System;
+﻿//
+//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  The MIT License (MIT) - See LICENSE.txt for further details.
+//
+
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 
@@ -40,18 +45,20 @@ namespace SharpPlant.SmartPlantReview
         }
 
         /// <summary>
-        ///     Point where the tag is displayed.
+        ///     Point where the tag is displayed.  If the tag has not been placed, the point coordinates will be 0, 0, 0.
         /// </summary>
         public SprPoint3D OriginPoint
         {
             get
             {
+                if (!IsPlaced) return new SprPoint3D(0, 0, 0);
                 return new SprPoint3D(Convert.ToDouble(TagData["tag_origin_x"]),
                                    Convert.ToDouble(TagData["tag_origin_y"]),
                                    Convert.ToDouble(TagData["tag_origin_z"]));
             }
             set
             {
+                if (!IsPlaced) return;
                 TagData["tag_origin_x"] = value.East;
                 TagData["tag_origin_y"] = value.North;
                 TagData["tag_origin_z"] = value.Elevation;
@@ -59,18 +66,20 @@ namespace SharpPlant.SmartPlantReview
         }
 
         /// <summary>
-        ///     Point for the end of the leader.
+        ///     Point for the end of the leader.  If the tag has not been placed, the point coordinates will be 0, 0, 0.
         /// </summary>
         public SprPoint3D LeaderPoint
         {
             get
             {
+                if (!IsPlaced) return new SprPoint3D(0, 0, 0);
                 return new SprPoint3D(Convert.ToDouble(TagData["tag_point_x"]),
                                    Convert.ToDouble(TagData["tag_point_y"]),
                                    Convert.ToDouble(TagData["tag_point_z"]));
             }
             set
             {
+                if (!IsPlaced) return;
                 TagData["tag_point_x"] = value.East;
                 TagData["tag_point_y"] = value.North;
                 TagData["tag_point_z"] = value.Elevation;
@@ -87,28 +96,30 @@ namespace SharpPlant.SmartPlantReview
         }
 
         /// <summary>
-        ///     Size of the tag bubble.
+        ///     Size of the tag bubble. If the tag has not been placed, the value is set to zero.
         /// </summary>
         public double Size
         {
-            get { return Convert.ToDouble(TagData["tag_size"]); }
-            set { TagData["tag_size"] = value; }
+            get { return IsPlaced ? Convert.ToDouble(TagData["tag_size"]) : 0; }
+            set { if (IsPlaced) TagData["tag_size"] = value; }
         }
 
         /// <summary>
-        ///     Date the tag was placed.
+        ///     Date the tag was placed.  If the tag has not been placed, the value is N/A.
         /// </summary>
         public string DatePlaced
         {
-            get { return TagData["date_placed"].ToString(); }
+            get { return IsPlaced ? TagData["date_placed"].ToString() : "N/A"; }
+            internal set { if (IsPlaced) TagData["date_placed"] = value; }
         }
 
         /// <summary>
-        ///     Date the tag was last edited.
+        ///     Date the tag was last edited.  If the tag has not been placed, the value is N/A.
         /// </summary>
         public string LastEdited
         {
-            get { return TagData["last_edited"].ToString(); }
+            get { return IsPlaced ? TagData["last_edited"].ToString() : "N/A"; }
+            internal set { if (IsPlaced) TagData["last_edited"] = value; }
         }
 
         /// <summary>
@@ -148,6 +159,38 @@ namespace SharpPlant.SmartPlantReview
         }
 
         /// <summary>
+        ///     Author of the tag.
+        /// </summary>
+        public string Creator
+        {
+            get { return TagData["creator"].ToString(); }
+            set { TagData["creator"] = value; }
+        }
+
+        /// <summary>
+        ///     Computer the tag was created on.
+        /// </summary>
+        public string ComputerName
+        {
+            get { return TagData["computer_name"].ToString(); }
+            set { TagData["computer_name"] = value; }
+        }
+
+        /// <summary>
+        ///     Status of the tag.
+        /// </summary>
+        public string Status
+        {
+            get { return TagData["status"].ToString(); }
+            set { TagData["status"] = value; }
+        }
+
+        /// <summary>
+        ///     Determines if the tag has been placed in SmartPlant Review.
+        /// </summary>
+        public bool IsPlaced { get; internal set; }
+
+        /// <summary>
         ///     Tag unique identification number.
         /// </summary>
         public int TagNumber
@@ -163,11 +206,14 @@ namespace SharpPlant.SmartPlantReview
 
         #endregion
 
-        // Tag initializer
+        // Tag constructor
         public SprTag()
         {
             // Link the parent application
             Application = SprApplication.ActiveApplication;
+
+            // Set as not placed by default
+            IsPlaced = false;
 
             // Create a new data dictionary from the template
             TagData = SprUtilities.TagTemplate;
@@ -175,9 +221,21 @@ namespace SharpPlant.SmartPlantReview
             // Set the tag to the next available tag number
             TagNumber = Application.NextTag;
 
+            // Set the leader display by default
+            DisplayLeader = true;
+
             // Add the default data values
             BackgroundColor = SprUtilities.From0Bgr(12632319);
             LeaderColor = SprUtilities.From0Bgr(12632319);
+
+            // Set the tag creator
+            Creator = Environment.GetEnvironmentVariable("USERNAME");
+
+            // Set the computer name
+            ComputerName = Environment.GetEnvironmentVariable("COMPUTERNAME");
+
+            // Set the default status
+            Status = "Open";
         }
     }
 }

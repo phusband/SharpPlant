@@ -1,4 +1,9 @@
-﻿namespace SharpPlant.SmartPlantReview
+﻿//
+//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  The MIT License (MIT) - See LICENSE.txt for further details.
+//
+
+namespace SharpPlant.SmartPlantReview
 {
     /// <summary>
     ///     Provides the structure containing information about a SmartPlant Review window.

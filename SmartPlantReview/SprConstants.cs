@@ -1,4 +1,9 @@
-﻿namespace SharpPlant.SmartPlantReview
+﻿//
+//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  The MIT License (MIT) - See LICENSE.txt for further details.
+//
+
+namespace SharpPlant.SmartPlantReview
 {
     /// <summary>
     ///     Contains application constants used by SmartPlant Review.
@@ -32,6 +37,9 @@
         // Global options
         public const int SprGlobalAnnoDisplay = 8;
         public const int SprGlobalAnnoTextDisplay = 9;
+        public const int SprGlobalAnnoDataDisplay = 11;
+        public const int SprGlobalAnnoVolumeDisplay = 12;
+        public const int SprGlobalMeasurementDisplay = 15;
         public const int SprGlobalFileInfoMode = 47;
 
         // Views

@@ -1,4 +1,9 @@
-﻿using System;
+﻿//
+//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  The MIT License (MIT) - See LICENSE.txt for further details.
+//
+
+using System;
 using System.Drawing;
 
 namespace SharpPlant.SmartPlantReview
@@ -140,7 +145,7 @@ namespace SharpPlant.SmartPlantReview
         /// <summary>
         ///     Indicates that the annotation should be maintained between sessions.
         /// </summary>
-        public bool SaveToMdb
+        public bool Persistent
         {
             get
             {
@@ -187,7 +192,7 @@ namespace SharpPlant.SmartPlantReview
 
         #endregion
 
-        // Annotation initializer
+        // Annotation constructor
         public SprAnnotation()
         {
             // Link the parent application

@@ -1,0 +1,56 @@
+SprApplication Methods
+
+GENERAL
+ - Activate: Working
+ - Connect: Working
+ - Dispose: Working
+ - Open: Working
+ - Exit: Working
+ - RefreshData: Working
+
+POINT SELECT
+ - GetPoint: Working
+ - GetObjectId: Working
+ - GetObjectData: Working
+
+TEXT WINDOW
+- TextWindow_Clear: Working
+- TextWindow_Update: Working
+- TextWindow_GetTitle: Working
+- TextWindow_GetText: Working
+
+TAGS
+- Tags_Add: Not implemented
+- Tags_AddDataField: Working
+- Tags_Delete: Working
+- Tags_Display: Working
+- Tags_SetNextTag: Working
+- Tags_Goto: Working
+- Tags_Get: Working
+- Tags_GetAll: Not implemented
+- Tags_Place: Working
+- Tags_EditLeader: Working
+- Tags_Update: Working
+
+ANNOTATION
+- Annotations_Display: Turns off tags
+- Annotations_Place: Working
+- Annotations_Add: Not implemented
+- Annotations_Get: Not created
+- Annotations_GetAll: Not created
+- Annotations_Select: Working
+- Annotations_Delete: Working
+- Annotations_DeleteType: Working
+- Annotations_DeleteAll: Working
+
+SNAPSHOT
+- TakeSnapshot: Working
+ 
+VIEWS
+* Methods will change as views will be a class
+
+WINDOWS
+- Window_Get: Working
+- Window_Set: Working
+
+
