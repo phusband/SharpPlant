@@ -2,8 +2,9 @@
 SharpPlant is a .NET wrapper for Intergraph SmartPlant® products, written in C#.  It was designed to simplify .NET development, as well as provide additional API functionality as needed.  The initial release of this API covers SmartPlant® Review only.  However as time, resources and community involvement picks up, the roadmap is planned to expand into further Intergraph products.  You can view more about the Intergraph SmartPlant® product line at http://www.intergraph.com
 
 ## How to Get Started
-- [Download](https://github.com/Allockse/SharpPlant/archive/master.zip) the latest SharpPlant project zip and build the dll in Visual Studio.
+- [Download](https://github.com/Allockse/SharpPlant/archive/master.zip) the latest SharpPlant project zip and build the dll in Visual Studio, or your preferred .NET IDE.
 - Add the ShartPlant.dll as a reference to a new or existing .NET solution to make the classes/methods available.
+- SharpPlant <b>requires .NET 4.0</b> or higher as it implements dynamic variables at runtime.
 
 ## Example Usage
 ### Creating an application reference:
