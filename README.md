@@ -82,7 +82,7 @@ var newObjectData = sprApp.GetObjectData("Select an object to collect label info
 [Parrish Husband] (https://github.com/Allockse)
 
 ## Support/Discussion
-[Official support thread at DaveTyner.com] (http://www.davetyner.com/forum/)
+[Official support thread at DaveTyner.com] (http://www.davetyner.com/forum/forumdisplay.php?127-Sharp-Plant)
 
 ## License
 SharpPlant is available under the MIT license. See the LICENSE file for more info.
