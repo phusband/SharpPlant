@@ -16,7 +16,7 @@ var sprApp = new SprApplication();
 ### Updating the application text window:
 ``` csharp
 // Update the application text window
-sprAPp.TextWindow_Update("SharpPlant loaded successfully");
+sprApp.TextWindow_Update("SharpPlant loaded successfully");
 
 ```
 
