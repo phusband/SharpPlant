@@ -52,16 +52,16 @@ namespace SharpPlant.SharpPlantReview
             get
             {
                 if (!IsPlaced) return new SprPoint3D(0, 0, 0);
-                return new SprPoint3D(Convert.ToDouble(TagData["tag_origin_x"]),
-                                   Convert.ToDouble(TagData["tag_origin_y"]),
-                                   Convert.ToDouble(TagData["tag_origin_z"]));
+                return new SprPoint3D(Convert.ToDouble(Data["tag_origin_x"]),
+                                   Convert.ToDouble(Data["tag_origin_y"]),
+                                   Convert.ToDouble(Data["tag_origin_z"]));
             }
             set
             {
                 if (!IsPlaced) return;
-                TagData["tag_origin_x"] = value.East;
-                TagData["tag_origin_y"] = value.North;
-                TagData["tag_origin_z"] = value.Elevation;
+                Data["tag_origin_x"] = value.East;
+                Data["tag_origin_y"] = value.North;
+                Data["tag_origin_z"] = value.Elevation;
             }
         }
 
@@ -73,16 +73,16 @@ namespace SharpPlant.SharpPlantReview
             get
             {
                 if (!IsPlaced) return new SprPoint3D(0, 0, 0);
-                return new SprPoint3D(Convert.ToDouble(TagData["tag_point_x"]),
-                                   Convert.ToDouble(TagData["tag_point_y"]),
-                                   Convert.ToDouble(TagData["tag_point_z"]));
+                return new SprPoint3D(Convert.ToDouble(Data["tag_point_x"]),
+                                   Convert.ToDouble(Data["tag_point_y"]),
+                                   Convert.ToDouble(Data["tag_point_z"]));
             }
             set
             {
                 if (!IsPlaced) return;
-                TagData["tag_point_x"] = value.East;
-                TagData["tag_point_y"] = value.North;
-                TagData["tag_point_z"] = value.Elevation;
+                Data["tag_point_x"] = value.East;
+                Data["tag_point_y"] = value.North;
+                Data["tag_point_z"] = value.Elevation;
             }
         }
 
@@ -91,8 +91,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string Text
         {
-            get { return TagData["tag_text"].ToString(); }
-            set { TagData["tag_text"] = value; }
+            get { return Data["tag_text"].ToString(); }
+            set { Data["tag_text"] = value; }
         }
 
         /// <summary>
@@ -100,8 +100,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public double Size
         {
-            get { return IsPlaced ? Convert.ToDouble(TagData["tag_size"]) : 0; }
-            set { if (IsPlaced) TagData["tag_size"] = value; }
+            get { return IsPlaced ? Convert.ToDouble(Data["tag_size"]) : 0; }
+            set { if (IsPlaced) Data["tag_size"] = value; }
         }
 
         /// <summary>
@@ -109,8 +109,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string DatePlaced
         {
-            get { return IsPlaced ? TagData["date_placed"].ToString() : "N/A"; }
-            internal set { if (IsPlaced) TagData["date_placed"] = value; }
+            get { return IsPlaced ? Data["date_placed"].ToString() : "N/A"; }
+            internal set { if (IsPlaced) Data["date_placed"] = value; }
         }
 
         /// <summary>
@@ -118,8 +118,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string LastEdited
         {
-            get { return IsPlaced ? TagData["last_edited"].ToString() : "N/A"; }
-            internal set { if (IsPlaced) TagData["last_edited"] = value; }
+            get { return IsPlaced ? Data["last_edited"].ToString() : "N/A"; }
+            internal set { if (IsPlaced) Data["last_edited"] = value; }
         }
 
         /// <summary>
@@ -127,8 +127,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public Color TextColor
         {
-            get { return SprUtilities.From0Bgr((int) TagData["number_color"]); }
-            set { TagData["number_color"] = SprUtilities.Get0Bgr(value); }
+            get { return SprUtilities.From0Bgr((int) Data["number_color"]); }
+            set { Data["number_color"] = SprUtilities.Get0Bgr(value); }
         }
 
         /// <summary>
@@ -136,8 +136,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public Color BackgroundColor
         {
-            get { return SprUtilities.From0Bgr((int) TagData["backgnd_color"]); }
-            set { TagData["backgnd_color"] = SprUtilities.Get0Bgr(value); }
+            get { return SprUtilities.From0Bgr((int) Data["backgnd_color"]); }
+            set { Data["backgnd_color"] = SprUtilities.Get0Bgr(value); }
         }
 
         /// <summary>
@@ -145,8 +145,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public Color LeaderColor
         {
-            get { return SprUtilities.From0Bgr((int) TagData["leader_color"]); }
-            set { TagData["leader_color"] = SprUtilities.Get0Bgr(value); }
+            get { return SprUtilities.From0Bgr((int) Data["leader_color"]); }
+            set { Data["leader_color"] = SprUtilities.Get0Bgr(value); }
         }
 
         /// <summary>
@@ -154,8 +154,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string Discipline
         {
-            get { return TagData["discipline"].ToString(); }
-            set { TagData["discipline"] = value; }
+            get { return Data["discipline"].ToString(); }
+            set { Data["discipline"] = value; }
         }
 
         /// <summary>
@@ -163,8 +163,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string Creator
         {
-            get { return TagData["creator"].ToString(); }
-            set { TagData["creator"] = value; }
+            get { return Data["creator"].ToString(); }
+            set { Data["creator"] = value; }
         }
 
         /// <summary>
@@ -172,8 +172,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string ComputerName
         {
-            get { return TagData["computer_name"].ToString(); }
-            set { TagData["computer_name"] = value; }
+            get { return Data["computer_name"].ToString(); }
+            set { Data["computer_name"] = value; }
         }
 
         /// <summary>
@@ -181,8 +181,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string Status
         {
-            get { return TagData["status"].ToString(); }
-            set { TagData["status"] = value; }
+            get { return Data["status"].ToString(); }
+            set { Data["status"] = value; }
         }
 
         /// <summary>
@@ -191,18 +191,47 @@ namespace SharpPlant.SharpPlantReview
         public bool IsPlaced { get; internal set; }
 
         /// <summary>
+        ///     Determines if the tag has an image stored in the MDB.
+        /// </summary>
+        public bool HasImage
+        {
+            get
+            {
+                try { return Data["tag_image"] != DBNull.Value; }
+                catch (KeyNotFoundException){ return false; } 
+            }
+        }
+
+        /// <summary>
         ///     Tag unique identification number.
         /// </summary>
-        public int TagNumber
+        public int Id
         {
-            get { return Convert.ToInt32(TagData["tag_unique_id"]); }
-            private set { TagData["tag_unique_id"] = value; }
+            get { return Convert.ToInt32(Data["tag_unique_id"]); }
+            private set { Data["tag_unique_id"] = value; }
+        }
+
+        /// <summary>
+        ///     The object the tag is attached to, if any.
+        /// </summary>
+        public SprObjectData AssociatedObject
+        { 
+            get
+            {
+                try { return Application.GetObjectData(Convert.ToInt32(Data["object_id"])); }
+                catch (KeyNotFoundException){ return null; } 
+            }
+            internal set
+            {
+                try { Data["object_id"] = value.ObjectId; }
+                catch (KeyNotFoundException) { } 
+            }
         }
 
         /// <summary>
         ///     The full information profile of the current tag.  Controls all the tag properties.
         /// </summary>
-        public Dictionary<string, object> TagData { get; set; }
+        public Dictionary<string, object> Data { get; set; }
 
         #endregion
 
@@ -216,10 +245,10 @@ namespace SharpPlant.SharpPlantReview
             IsPlaced = false;
 
             // Create a new data dictionary from the template
-            TagData = SprUtilities.TagTemplate;
+            Data = SprUtilities.TagTemplate;
 
             // Set the tag to the next available tag number
-            TagNumber = Application.NextTag;
+            Id = Application.NextTag;
 
             // Set the leader display by default
             DisplayLeader = true;

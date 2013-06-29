@@ -21,6 +21,16 @@ namespace SharpPlant.SharpPlantReview
         #region SnapShot Properties
 
         /// <summary>
+        ///     The path to the temporary snapshot directory.
+        /// </summary>
+        public static string TempDirectory { get; set; }
+
+        /// <summary>
+        ///     The path to the default snapshot output directory.
+        /// </summary>
+        public static string DefaultDirectory { get; set; }
+
+        /// <summary>
         ///     The active COM reference to the DrSnapShot class
         /// </summary>
         internal dynamic DrSnapShot;
@@ -201,14 +211,15 @@ namespace SharpPlant.SharpPlantReview
             AntiAlias = 2;
 
             // Set the default size based on the main window 
-            Height = Application.MainWindow.Height;
-            Width = Application.MainWindow.Width;
+            if (Application.IsConnected) Height = Application.MainWindow.Height;
+            if (Application.IsConnected) Width = Application.MainWindow.Width;
         }
 
         // Internal snapshot methods
-        internal static bool FormatSnapshot(string imagePath, SprSnapshotFormat format)
+        internal static string FormatSnapshot(string imagePath, SprSnapshotFormat format)
         {
             // Get the saved image
+            string finalImage = string.Empty;
             var curImage = Image.FromFile(imagePath);
             var result = new Bitmap(curImage.Width, curImage.Height);
 
@@ -221,14 +232,19 @@ namespace SharpPlant.SharpPlantReview
                 g.CompositingQuality = CompositingQuality.HighQuality;
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 g.SmoothingMode = SmoothingMode.HighQuality;
-                g.DrawImage(curImage, 0, 0, result.Width, result.Height);
+
+                // Try to draw the image
+                try { g.DrawImage(curImage, 0, 0, result.Width, result.Height); }
+                catch (OutOfMemoryException) { throw SprExceptions.SprOutOfMemory; }
+
             }
 
             switch (format)
             {
                 // Save as PNG
                 case SprSnapshotFormat.Png:
-                    result.Save(imagePath.Replace(".bmp", ".png"), ImageFormat.Png);
+                    finalImage = imagePath.Replace(".bmp", ".png");
+                    result.Save(finalImage, ImageFormat.Png);
                     break;
 
                 // Save as JPG
@@ -250,7 +266,8 @@ namespace SharpPlant.SharpPlantReview
                             encodeParams.Param[0] = qualityParam;
 
                             // Save to JPG using the custom encoder
-                            result.Save(imagePath.Replace(".bmp", ".jpg"), jpgEncoder, encodeParams);
+                            finalImage = imagePath.Replace(".bmp", ".jpg");
+                            result.Save(finalImage, jpgEncoder, encodeParams);
                         }
                     }
                     break;
@@ -271,7 +288,7 @@ namespace SharpPlant.SharpPlantReview
                 }
             }
 
-            return true;
+            return finalImage;
         }
     }
 }

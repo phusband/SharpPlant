@@ -22,14 +22,14 @@ namespace SharpPlant.SharpPlantReview
         #region Application Properties
 
         /// <summary>
-        ///     The static Application used to set the class parent object
+        ///     The static Application used to set the class parent object.
         /// </summary>
         internal static SprApplication ActiveApplication;
 
         private bool _disposed;
 
         /// <summary>
-        ///     The collection of active running SprProcesses
+        ///     The collection of active running SprProcesses.
         /// </summary>
         public static Process[] SprProcesses
         {
@@ -111,6 +111,35 @@ namespace SharpPlant.SharpPlantReview
 
                 // Return the path
                 return vueName;
+            }
+        }
+
+        /// <summary>
+        ///     Gets a list of the design files loaded into the active review session.
+        /// </summary>
+        public List<string> DesignFiles
+        {
+            get
+            {  
+                int fileCount;
+                int sprResult = DrApi.FileCountGet(out fileCount);
+
+                GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 0);
+
+                var returnList = new List<string>();
+
+                for (int i = 0; i < fileCount; i++)
+                {
+                    string curName;
+                    string curPath;
+                    sprResult = DrApi.FileNameFromNumber(i, out curName);
+
+                    sprResult = DrApi.FilePathFromNumber(i, out curPath);
+
+                    returnList.Add(string.Format("{0}{1}", curPath, curName));
+                }
+
+                return returnList;
             }
         }
 
@@ -271,6 +300,11 @@ namespace SharpPlant.SharpPlantReview
             set { if (IsConnected) Window_Set(value); }
         }
 
+        /// <summary>
+        ///     The default properties used when an SprSnapshot is omitted from snapshot methods.
+        /// </summary>
+        public SprSnapShot DefaultSnapshot { get; set; }
+
         #endregion
 
         /// <summary>
@@ -287,6 +321,19 @@ namespace SharpPlant.SharpPlantReview
 
                 // Connect to the SPR instance automatically
                 Connect();
+
+            // Create the default snapshot format
+            DefaultSnapshot = new SprSnapShot
+            {
+                AntiAlias = 3,
+                OutputFormat = SprSnapshotFormat.Jpg,
+                AspectOn = true,
+                Scale = 1
+            };
+
+            // Set the default snapshot directories
+            SprSnapShot.TempDirectory = Environment.GetEnvironmentVariable("TEMP");
+            SprSnapShot.DefaultDirectory = Environment.SpecialFolder.MyPictures.ToString();
         }
 
         /// <summary>
@@ -376,6 +423,34 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
+        ///     Exports the current session to a VUE file format.
+        ///     Compatible only with SPR versions 9 and above.
+        /// </summary>
+        /// <param name="vueName">The full path of the vue file to be exported.</param>
+        public void Export(string vueName)
+        {
+            // Check version compatibility
+            int vers = int.Parse(Version.Substring(0,2));
+            if (vers < 9) return;
+
+            // Export the current session to VUE
+            int sprResult = DrApi.ExportVue(vueName, 0);
+
+            // Handle the errors
+            switch (sprResult)
+            {
+                case SprConstants.SprErrorApiInternal:
+                    throw SprExceptions.SprInternalError;
+                case SprConstants.SprErrorApiOutOfMemory:
+                    throw SprExceptions.SprOutOfMemory;
+                case SprConstants.SprErrorInvalidParameter:
+                    throw SprExceptions.SprInvalidParameter;
+                case SprConstants.SprErrorFileWriteFailure:
+                    throw SprExceptions.SprFileWriteFailure;
+            }
+        }
+
+        /// <summary>
         ///     Exits the SmartPlant Review application.
         /// </summary>
         public void Exit()
@@ -407,6 +482,63 @@ namespace SharpPlant.SharpPlantReview
 
             // Send the update command
             SendKeys.SendWait("%TR");
+        }
+
+        /// <summary>
+        ///     Sets the value of a specified global option in SmartPlant Review.
+        /// </summary>
+        /// <param name="option">The integer of the global option to set.</param>
+        /// <param name="value">The integer value to set the global option to.</param>
+        public void GlobalOptionsSet(int option, int value)
+        {
+            // Throw an exception if not connected
+            if (!IsConnected) throw SprExceptions.SprNotConnected;
+
+            // Set the global option to the provided value
+            int sprResult = DrApi.GlobalOptionsSet(option, value);
+
+            // Handle the errors
+            switch (sprResult)
+            {
+                case SprConstants.SprErrorNoApi:
+                    throw SprExceptions.SprNotConnected;
+                case SprConstants.SprErrorInvalidGlobal:
+                    throw SprExceptions.SprInvalidGlobal;
+                case SprConstants.SprErrorInvalidParameter:
+                    throw SprExceptions.SprInvalidParameter;
+            }
+        }
+
+        /// <summary>
+        ///     Gets the value of a specified global option in SmartPlant Review.
+        /// </summary>
+        /// <param name="option">The integer value of the option to retrieve.</param>
+        /// <returns>Integer value representing the current state of the option.</returns>
+        public double GlobalOptionsGet(int option)
+        {
+            // Throw an exception if not connected
+            if (!IsConnected) throw SprExceptions.SprNotConnected;
+
+            // Create the return value
+            double returnVal;
+            int sprResult;
+
+            // Get the global option value
+            sprResult = DrApi.GlobalOptionsGet(option, out returnVal);
+
+            // Handle the errors
+            switch (sprResult)
+            {
+                case SprConstants.SprErrorNoApi:
+                    throw SprExceptions.SprNotConnected;
+                case SprConstants.SprErrorInvalidGlobal:
+                    throw SprExceptions.SprInvalidGlobal;
+                case SprConstants.SprErrorInvalidParameter:
+                    throw SprExceptions.SprInvalidParameter;
+            }
+
+            // Return the retrieved value
+            return returnVal;
         }
 
         #endregion
@@ -550,7 +682,6 @@ namespace SharpPlant.SharpPlantReview
 
             // Create the return object
             var returnData = new SprObjectData();
-            dynamic objData = returnData.DrObjectDataDbl;
 
             // Return null if the objectId is zero
             if (objectId == 0) return null;
@@ -559,7 +690,7 @@ namespace SharpPlant.SharpPlantReview
             returnData.ObjectId = objectId;
 
             // Get the DataDbl object
-            int sprResult = DrApi.ObjectDataGetDbl(objectId, 2, ref objData);
+            int sprResult = DrApi.ObjectDataGetDbl(objectId, 2, ref returnData.DrObjectDataDbl);
 
             // Handle the errors
             switch (sprResult)
@@ -576,7 +707,7 @@ namespace SharpPlant.SharpPlantReview
 
             // Iterate through the labels
             string lblName = string.Empty, lblValue = string.Empty;
-            for (var i = 0; i < objData.LabelDataCount; i++)
+            for (var i = 0; i < returnData.DrObjectDataDbl.LabelDataCount; i++)
             {
                 // Get the label key/value pair
                 sprResult = DrApi.ObjectDataLabelGet(ref lblName, ref lblValue, i);
@@ -592,9 +723,11 @@ namespace SharpPlant.SharpPlantReview
                         throw SprExceptions.SprNotConnected;
                 }
 
-                // Add the label information to the Labeldata dictionary
-                try { returnData.LabelData.Add(lblName, lblValue); }
-                catch (ArgumentException) { }
+                // Check if the label already exists
+                if (!returnData.LabelData.ContainsKey(lblName))
+
+                    // Add the label data to the dictionary
+                    returnData.LabelData.Add(lblName, lblValue);
             }
 
             // Return the data object
@@ -788,7 +921,7 @@ namespace SharpPlant.SharpPlantReview
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
             // Add the tag field to the MDB database
-            return DbMethods.AddDbField(MdbPath, fieldName);
+            return DbMethods.AddDbField(MdbPath, "tag_data", fieldName);
         }
 
         /// <summary>
@@ -939,7 +1072,7 @@ namespace SharpPlant.SharpPlantReview
             if (curTag == null) return;
                 
             // Update the text window with the tag information
-            TextWindow_Update(curTag.TagData["tag_text"].ToString(), string.Format("Tag {0}", tagNo));
+            TextWindow_Update(curTag.Data["tag_text"].ToString(), string.Format("Tag {0}", tagNo));
 
             // Locate the desired tag on the main screen with the specified visibility
             int sprResult = DrApi.GotoTag(tagNo, 0, Convert.ToInt32(displayTag));
@@ -986,7 +1119,7 @@ namespace SharpPlant.SharpPlantReview
             foreach (DataColumn col in tagTable.Columns)
             {
                 // Add the key/value from the first filtered row to the dictionary
-                returnTag.TagData[col.ColumnName] = rowFilter[0][col];
+                returnTag.Data[col.ColumnName] = rowFilter[0][col];
             }
 
             // Set the tag as placed
@@ -994,15 +1127,6 @@ namespace SharpPlant.SharpPlantReview
 
             // Return the tag
             return returnTag;
-        }
-
-        /// <summary>
-        ///     Retrieves all the existing tags in the Mdb tag_data table.
-        /// </summary>
-        /// <returns>List of SprTags retrieved.</returns>
-        public List<SprTag> Tags_GetAll()
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -1031,23 +1155,33 @@ namespace SharpPlant.SharpPlantReview
             var tagOrigin = new SprPoint3D();
 
             // Get an object on screen and set the origin point to its location
-            var objId = -1;
-            objId = GetObjectId("SELECT TAG START POINT", ref tagOrigin);
+            var objId = GetObjectId("SELECT TAG START POINT", ref tagOrigin);
 
             // Exit if the object selection failed
-            if (objId == -1) return;
+            if (objId == 0)
+            {
+                TextWindow_Update("Tag placement canceled.");
+                return;
+            } 
 
             // Get the tag leader point using the origin for depth
             var tagLeader = GetPoint("SELECT TAG LEADER LOCATION", tagOrigin);
 
             // Exit if the leader point is not set
-            if (tagLeader == null) return;
+            if (tagLeader == null)
+            {
+                TextWindow_Update("Tag placement canceled.");
+                return;
+            }
+
+            // Throw an exception if either of the point retrievals failed
+            if (objId == 0 || tagLeader == null) throw SprExceptions.SprNullPoint;
 
             // Set the tag registry values
             SprUtilities.SetTagRegistry(tag);
 
             // Place the tag
-            int sprResult = DrApi.TagSetDbl(tag.TagNumber, 0, tag.Flags, ref tagLeader.DrPointDbl,
+            int sprResult = DrApi.TagSetDbl(tag.Id, 0, tag.Flags, ref tagLeader.DrPointDbl,
                                             ref tagOrigin.DrPointDbl, tagKey, tag.Text);
 
             // Handle the errors
@@ -1066,14 +1200,23 @@ namespace SharpPlant.SharpPlantReview
                     throw SprExceptions.SprTagExists;
             }
 
+            // Retrieve the placed tag data
+            tag = Tags_Get(tag.Id);
+
+            // Add an ObjectId field
+            Tags_AddDataField("object_id");
+
+            // Save the ObjectId to the tag data
+            tag.Data["object_id"] = objId;
+
+            // Update the tag
+            Tags_Update(tag);
+
             // Clear the tag registry
             SprUtilities.ClearTagRegistry();
 
             // Update the text window
-            TextWindow_Update(tag.Text, string.Format("Tag {0}", tag.TagNumber));
-
-            // Reference the placed tag
-            tag = Tags_Get(tag.TagNumber);
+            TextWindow_Update(tag.Text, string.Format("Tag {0}", tag.Id));
         }
 
         /// <summary>
@@ -1108,14 +1251,27 @@ namespace SharpPlant.SharpPlantReview
             var tagOrigin = new SprPoint3D();
 
             // Get an object on screen and set the origin point to its location
-            var objId = -1;
-            objId = GetObjectId("SELECT NEW TAG START POINT", ref tagOrigin);
+            var objId = GetObjectId("SELECT NEW TAG START POINT", ref tagOrigin);
+
+            // Exit if the object selection failed
+            if (objId == 0)
+            {
+                TextWindow_Update("Tag placement canceled.");
+                return;
+            }
 
             // Get the tag leader point
-            var tagLeader = GetPoint("SELECT NEW LEADER LOCATION");
+            var tagLeader = GetPoint("SELECT NEW LEADER LOCATION", tagOrigin);
+
+            // Exit if the leader point is not set
+            if (tagLeader == null)
+            {
+                TextWindow_Update("Tag placement canceled.");
+                return;
+            }
 
             // Throw an exception if either of the point retrievals failed
-            if (objId == -1 || tagLeader == null) throw SprExceptions.SprNullPoint;
+            if (objId == 0 || tagLeader == null) throw SprExceptions.SprNullPoint;
 
             // Create DrKey object
             dynamic tagKey = Activator.CreateInstance(SprImportedTypes.DrKey);
@@ -1127,7 +1283,7 @@ namespace SharpPlant.SharpPlantReview
             tag.Flags |= SprConstants.SprTagEdit;
 
             // Update the tag with the new leader points
-            int sprResult = DrApi.TagSetDbl(tag.TagNumber, 0, tag.Flags, tagLeader.DrPointDbl,
+            int sprResult = DrApi.TagSetDbl(tag.Id, 0, tag.Flags, tagLeader.DrPointDbl,
                                                 tagOrigin.DrPointDbl, tagKey, tagText);
 
             // Handle the errors
@@ -1147,7 +1303,7 @@ namespace SharpPlant.SharpPlantReview
             }
 
             // Reference the placed tag
-            tag = Tags_Get(tag.TagNumber);
+            tag = Tags_Get(tag.Id);
 
             // Flip the tag 180 degrees.  Intergraph is AWESOME!
             var newOrigin = tag.LeaderPoint;
@@ -1155,11 +1311,17 @@ namespace SharpPlant.SharpPlantReview
             tag.LeaderPoint = newLeader;
             tag.OriginPoint = newOrigin;
 
-            // Queue the Mdb update in the threadpool
-            ThreadPool.QueueUserWorkItem(Tags_Update, tag);
+            // Add an ObjectId field
+            Tags_AddDataField("object_id");
+
+            // Save the ObjectId in the tag LabelKey spot
+            tag.Data["object_id"] = objId;
+
+            // Update the tag
+            Tags_Update(tag);
 
             // Update the text window
-            TextWindow_Update(tag.Text, string.Format("Tag {0}", tag.TagNumber));
+            TextWindow_Update(tag.Text, string.Format("Tag {0}", tag.Id));
 
             // Update the main view
             DrApi.ViewUpdate(1);
@@ -1185,11 +1347,11 @@ namespace SharpPlant.SharpPlantReview
             if (tagTable.Rows.Count == 0) return false;
             
             // Create the row filter for the specified tag
-            var rowFilter = string.Format("tag_unique_id = {0}", tag.TagNumber);
+            var rowFilter = string.Format("tag_unique_id = {0}", tag.Id);
             var tblFilter = tagTable.Select(rowFilter);
 
             // Iterate through each dictionary key/value pair
-            foreach (var kvp in tag.TagData)
+            foreach (var kvp in tag.Data)
             
             // Set the values for the selected tag
             tblFilter[0][kvp.Key] = kvp.Value;
@@ -1220,17 +1382,145 @@ namespace SharpPlant.SharpPlantReview
             if (tagTable.Rows.Count == 0) return;
 
             // Create the row filter for the specified tag
-            var rowFilter = string.Format("tag_unique_id = {0}", tag.TagNumber);
+            var rowFilter = string.Format("tag_unique_id = {0}", tag.Id);
             var tblFilter = tagTable.Select(rowFilter);
 
             // Iterate through each dictionary key/value pair
-            foreach (var kvp in tag.TagData)
+            foreach (var kvp in tag.Data)
 
                 // Set the values for the selected tag
                 tblFilter[0][kvp.Key] = kvp.Value;
 
             // Push the the updated table
             DbMethods.UpdateDbTable(MdbPath, rowFilter, tagTable);
+        }
+
+        /// <summary>
+        ///     Saves a tag image in the default snapshot format as a block of binary data inside the Mdb.
+        /// </summary>
+        /// <param name="tagNo">The tag Id the image will be linked to.</param>
+        /// <param name="ZoomToTag">Determines if the main view zooms to the tag in the main SmartPlant screen.</param>
+        /// <returns></returns>
+        public bool Tags_SaveImageToMDB(int tagNo, bool ZoomToTag)
+        {
+            return Tags_SaveImageToMDB(tagNo, DefaultSnapshot, ZoomToTag);
+        }
+
+        /// <summary>
+        ///     Saves a tag image as a block of binary data inside the Mdb.
+        /// </summary>
+        /// <param name="tagNo">The tag Id the image will be linked to.</param>
+        /// <param name="snap">The snapshot format the image will be created with.</param>
+        /// <param name="ZoomToTag">Determines if the main view zooms to the tag in the main SmartPlant screen.</param>
+        /// <returns></returns>
+        public bool Tags_SaveImageToMDB(int tagNo, SprSnapShot snap, bool ZoomToTag)
+        {
+            // Zoom to the tag as needed
+            if (ZoomToTag)
+                Tags_Goto(tagNo);
+
+            string imgPath = TakeSnapshot(snap, "dbImage_temp", SprSnapShot.TempDirectory);
+
+            if (!DbMethods.AddDbField(MdbPath, "tag_data", "tag_image", "OLEOBJECT"))
+                return false;
+
+            using (var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read))
+            {
+                var imgBytes = new byte[fs.Length];
+                fs.Read(imgBytes, 0, imgBytes.Length);
+
+                var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
+
+                var rowFilter = string.Format("tag_unique_id = {0}", tagNo);
+                var tblFilter = tagTable.Select(rowFilter);
+                tblFilter[0]["tag_image"] = imgBytes;
+
+                // Return the result of the table update
+                if (!DbMethods.UpdateDbTable(MdbPath, rowFilter, tagTable))
+                    return false;
+            }
+
+            File.Delete(imgPath);
+            return true;
+        }
+        
+        /// <summary>
+        ///     Saves images in the default snapshot format for all existing tags in the Mdb.
+        /// </summary>
+        /// <returns></returns>
+        public bool Tags_SaveAllImagesToMDB()
+        {
+            return Tags_SaveAllImagesToMDB(DefaultSnapshot);
+        }
+
+        /// <summary>
+        ///     Saves images for all existing tags in the Mdb.
+        /// </summary>
+        /// <param name="snap">The snapshot format the images will be created with.</param>
+        /// <returns></returns>
+        public bool Tags_SaveAllImagesToMDB(SprSnapShot snap)
+        {
+            // Retrieve the site table
+            var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
+
+            // Return null if the table retrieval failed
+            if (tagTable == null) return false;
+
+            // Return null if no tags exist
+            if (tagTable.Rows.Count == 0) return false;
+
+            for (int i = 0; i < tagTable.Rows.Count; i++)
+            {
+                var curTag = Tags_Get(Convert.ToInt32(tagTable.Rows[i]["tag_unique_id"]));
+
+                if (!Tags_SaveImageToMDB(curTag.Id, snap, true))
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        ///     Saves images in the default snapshot format for all existing tags to a local directory.
+        /// </summary>
+        /// <param name="nameFormat">The naming format the tags will be saved using. (## represents the tag number)</param>
+        /// <param name="outputDir">The path to the directory where the images will be placed.</param>
+        /// <returns></returns>
+        public bool Tags_TakeSnapshots(string nameFormat, string outputDir)
+        {
+            return Tags_TakeSnapshots(nameFormat, outputDir, DefaultSnapshot);
+        }
+
+        /// <summary>
+        ///     Saves images for all existing tags to a local directory.
+        /// </summary>
+        /// <param name="nameFormat">The naming format the tags will be saved using. (## represents the tag number)</param>
+        /// <param name="outputDir">The path to the directory where the images will be placed.</param>
+        /// <param name="snap">The snapshot format the images will be created with.</param>
+        /// <returns></returns>
+        public bool Tags_TakeSnapshots(string nameFormat, string outputDir, SprSnapShot snap)
+        {
+            // Retrieve the site table
+            var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
+
+            // Set the name formatting
+            nameFormat = nameFormat.Replace("##", "{0}");
+
+            // Return null if the table retrieval failed
+            if (tagTable == null) return false;
+
+            // Return null if no tags exist
+            if (tagTable.Rows.Count == 0) return false;
+
+            for (int i = 0; i < tagTable.Rows.Count; i++)
+            {
+                var curTagNo = Convert.ToInt32(tagTable.Rows[i]["tag_unique_id"]);
+                Tags_Goto(curTagNo);
+
+                TakeSnapshot(snap, string.Format(nameFormat, curTagNo), outputDir);
+            }
+
+            return true;
         }
 
         #endregion
@@ -1304,6 +1594,21 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
+        ///     Creates a new data field in the Mdb text_annotations table.
+        ///     Returns true if the field already exists.
+        /// </summary>
+        /// <param name="fieldName">The string name of the field to be added.  Spaces in the field name are replaced.</param>
+        /// <returns>Indicates the success or failure of the table modification.</returns>
+        public bool Annotations_AddDataField(string fieldName)
+        {
+            // Throw an exception if not connected
+            if (!IsConnected) throw SprExceptions.SprNotConnected;
+
+            // Add the tag field to the MDB database
+            return DbMethods.AddDbField(MdbPath, "text_annotations", fieldName);
+        }
+
+        /// <summary>
         ///     Prompts a user to place a new annotation in the SmartPlant Review main view.
         /// </summary>
         /// <param name="anno">Reference SprAnnotation containing the annotation information.</param>
@@ -1316,24 +1621,35 @@ namespace SharpPlant.SharpPlantReview
             var leaderPoint = new SprPoint3D();
 
             // Get the annotation leader point
-            int assocId = GetObjectId("SELECT A POINT ON AN OBJECT TO LOCATE THE ANNOTATION", ref leaderPoint);
+            int objId = GetObjectId("SELECT A POINT ON AN OBJECT TO LOCATE THE ANNOTATION", ref leaderPoint);
 
-            // Exit if the leaderObj was set
-            if (assocId == -1) return;           
+            // Exit if the object selection failed/canceled
+            if (objId == 0)
+            {
+                TextWindow_Update("Annotation placement canceled.");
+                return;
+            }        
 
             // Get the annotation center point using the leaderpoint for depth calculation
             var centerPoint = GetPoint("SELECT THE CENTER POINT FOR THE ANNOTATION LABEL", leaderPoint);
 
-            // Exit if the centerObj was set
-            if (centerPoint == null) return;
+            // Exit if the centerpoint selection failed/canceled
+            if (centerPoint == null)
+            {
+                TextWindow_Update("Annotation placement canceled.");
+                return;
+            }
+
+            // Create a reference to the DrAnnotation
+            var drAnno = anno.DrAnnotationDbl;
 
             // Set the annotation points
-            anno.LeaderPoint = leaderPoint;
-            anno.CenterPoint = centerPoint;
+            drAnno.LeaderPoint = leaderPoint.DrPointDbl;
+            drAnno.CenterPoint = centerPoint.DrPointDbl;
 
             // Place the annotation on screen
             int annoId;
-            int sprResult = DrApi.AnnotationCreateDbl(anno.Type, ref anno.DrAnnotationDbl, out annoId);
+            int sprResult = DrApi.AnnotationCreateDbl(anno.Type, ref drAnno, out annoId);
 
             // Handle the errors
             switch (sprResult)
@@ -1346,11 +1662,8 @@ namespace SharpPlant.SharpPlantReview
                     throw SprExceptions.SprInvalidAnnoType;
             }
 
-            // Set the annotation Id
-            anno.AnnotationId = annoId;
-
             // Link the located object to the annotation
-            sprResult = DrApi.AnnotationDataSet(annoId, anno.Type, ref anno.DrAnnotationDbl, ref assocId);
+            sprResult = DrApi.AnnotationDataSet(annoId, anno.Type, ref drAnno, ref objId);
 
             // Handle the errors
             switch (sprResult)
@@ -1365,12 +1678,32 @@ namespace SharpPlant.SharpPlantReview
                     throw SprExceptions.SprOutOfMemory;
             }
 
-            // Get the associated object data
-            anno.AssociatedObject = GetObjectData(assocId);
-            anno.AssociatedObject.SelectedPoint = anno.LeaderPoint;
+            // Retrieve the placed annotation data
+            anno = Annotations_Get(anno.Id);
+
+            // Add an ObjectId field
+            Annotations_AddDataField("object_id");
+
+            // Save the ObjectId to the annotation data
+            anno.Data["object_id"] = objId;
+
+            // Update the annotation
+            Annotations_Update(anno);
+
+            // Update the text window
+            TextWindow_Update(anno.Text, string.Format("Annotation {0}", anno.Id));
 
             // Update the main view
             DrApi.ViewUpdate(1);
+        }
+
+        public void Annotations_EditLeader(int annoNo)
+        {
+
+        }
+        public void Annotations_EditLeader(ref SprAnnotation annotation)
+        {
+        
         }
 
         /// <summary>
@@ -1407,7 +1740,7 @@ namespace SharpPlant.SharpPlantReview
             int annoId;
 
             // Create the return annotation object
-            var returnAnno = new SprAnnotation();
+            var anno = new SprAnnotation();
 
             // Set the SPR application visible
             Activate();
@@ -1431,11 +1764,12 @@ namespace SharpPlant.SharpPlantReview
             if (annoId == 0) return null;
 
             // Set the annotation ID
-            returnAnno.AnnotationId = annoId;
+            anno.Id = annoId;
 
             // Get the associated object ID
             int assocId;
-            sprResult = DrApi.AnnotationDataGet(annoId, type, ref returnAnno.DrAnnotationDbl, out assocId);
+            var drAnno = anno.DrAnnotationDbl;
+            sprResult = DrApi.AnnotationDataGet(annoId, type, ref drAnno, out assocId);
 
             // Handle the errors
             switch (sprResult)
@@ -1454,10 +1788,10 @@ namespace SharpPlant.SharpPlantReview
             if (assocId == 0) return null;
 
             // Set the assiciated object
-            returnAnno.AssociatedObject = GetObjectData(assocId);
+            anno.AssociatedObject = GetObjectData(assocId);
 
             // Return the completed annotation
-            return returnAnno;
+            return anno;
         }
 
         /// <summary>
@@ -1570,10 +1904,124 @@ namespace SharpPlant.SharpPlantReview
             DrApi.ViewUpdate(1);
         }
 
+        /// <summary>
+        ///     Retrieves the desired annotation from the Mdb text_annotations table.
+        /// </summary>
+        /// <param name="annoId">Unique Id of the annotation to retrieve.</param>
+        /// <returns>SprAnnotation containing the retirned annotation information.</returns>
+        public SprAnnotation Annotations_Get(int annoId)
+        {
+            // Throw an exception if not connected
+            //if (!IsConnected) throw SprExceptions.SprNotConnected;
+
+            // Create the new tag
+            var anno = new SprAnnotation();
+
+            // Retrieve the site table
+            var annoTable = DbMethods.GetDbTable(MdbPath, "text_annotations");
+
+            // Return null if the table retrieval failed
+            if (annoTable == null) return null;
+
+            // Return null if no annotations exist
+            if (annoTable.Rows.Count == 0) return null;
+
+            // Create the row filter for the desired tag
+            var rowFilter = annoTable.Select(string.Format("id = '{0}'", annoId));
+
+            // Throw an exception if the tag was not found
+            if (rowFilter.Length == 0) throw SprExceptions.SprAnnotationNotFound;
+
+            // Iterate through each column
+            foreach (DataColumn col in annoTable.Columns)
+            {
+                // Add the key/value from the first filtered row to the dictionary
+                anno.Data[col.ColumnName] = rowFilter[0][col];
+            }
+
+            // Set the tag as placed
+            anno.IsPlaced = true;
+
+            // Return the tag
+            return anno;
+        }
+
+        /// <summary>
+        ///     Updates annotation data directly in the Mdb text_annotations table.
+        /// </summary>
+        /// <param name="anno">SprAnnotation containing the annotation information.</param>
+        /// <returns>Indicates the success or failure of the text_annotations modification.</returns>
+        public bool Annotations_Update(SprAnnotation anno)
+        {
+            // Throw an exception if not connected
+            //if (!IsConnected)throw SprExceptions.SprNotConnected;
+
+            // Retrieve the site table
+            var annoTable = DbMethods.GetDbTable(MdbPath, "text_annotations");
+
+            // Return false if the table is null
+            if (annoTable == null) return false;
+
+            // Return false if no tags exist
+            if (annoTable.Rows.Count == 0) return false;
+
+            // Create the row filter for the specified tag
+            var rowFilter = string.Format("id = {0}", anno.Id);
+            var tblFilter = annoTable.Select(rowFilter);
+
+            // Iterate through each dictionary key/value pair
+            foreach (var kvp in anno.Data)
+
+                // Set the values for the selected tag
+                tblFilter[0][kvp.Key] = kvp.Value;
+
+            // Return the result of the table update
+            return DbMethods.UpdateDbTable(MdbPath, rowFilter, annoTable);
+        }
+
+        /// <summary>
+        ///     Updates annotation information directly in the Mdb text_annotations table, queueable from the threadpool.
+        /// </summary>
+        /// <param name="stateInfo">SprAnnotation passed as an object per WaitCallback requirements.</param>
+        public void Annotations_Update(object stateInfo)
+        {
+            // Cast the threading object 
+            var anno = stateInfo as SprAnnotation;
+
+            // Return if the annotation is null
+            if (anno == null) return;
+
+            // Retrieve the annotation table
+            var annoTable = DbMethods.GetDbTable(MdbPath, "text_annotations");
+
+            // Return if the table is null
+            if (annoTable == null) return;
+
+            // Return if no annotations exist
+            if (annoTable.Rows.Count == 0) return;
+
+            // Create the row filter for the specified tag
+            var rowFilter = string.Format("id = {0}", anno.Id);
+            var tblFilter = annoTable.Select(rowFilter);
+
+            // Iterate through each dictionary key/value pair
+            foreach (var kvp in anno.Data)
+
+                // Set the values for the selected annotation
+                tblFilter[0][kvp.Key] = kvp.Value;
+
+            // Push the the updated table
+            DbMethods.UpdateDbTable(MdbPath, rowFilter, annoTable);
+        }
+
         #endregion
 
         #region Snapshot
 
+        public string TakeSnapshot(string imageName, string outputDir)
+        {
+            return TakeSnapshot(DefaultSnapshot, imageName, outputDir);
+        }
         /// <summary>
         ///     Captures the active SmartPlant Reviews session main view and 
         ///     writes it an image of the given filename and format.
@@ -1582,7 +2030,7 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="imageName">Name of the final output image.</param>
         /// <param name="outputDir">Directory to save the snapshot to.</param>
         /// <returns></returns>
-        public bool TakeSnapshot(SprSnapShot snapShot, string imageName, string outputDir)
+        public string TakeSnapshot(SprSnapShot snapShot, string imageName, string outputDir)
         {
             // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
@@ -1590,8 +2038,21 @@ namespace SharpPlant.SharpPlantReview
             // Build the output image path (.BMP is forced before conversions)
             var imgPath = Path.Combine(outputDir, string.Format("{0}.bmp", imageName));
 
+            // Get the current backface/endcap settings
+            var orgBackfaces = GlobalOptionsGet(SprConstants.SprGlobalBackfacesDisplay);
+            var orgEndcaps = GlobalOptionsGet(SprConstants.SprGlobalEndcapsDisplay);
+
+            // Turn on view backfaces/endcaps as needed
+            if (orgBackfaces == 0)
+            GlobalOptionsSet(SprConstants.SprGlobalBackfacesDisplay, 1);
+            if (orgEndcaps == 0)
+            GlobalOptionsSet(SprConstants.SprGlobalEndcapsDisplay, 1);
+
             // Take the snapshot
             int sprResult = DrApi.SnapShot(imgPath, snapShot.Flags, snapShot.DrSnapShot, 0);
+
+            // Wait until SmartPlant Review is finished processing
+            while (IsBusy) Thread.Sleep(100);
 
             // Handle the errors
             switch (sprResult)
@@ -1608,12 +2069,26 @@ namespace SharpPlant.SharpPlantReview
                     throw SprExceptions.SprFileExists;
             }
 
+            // Reset the original settings if applicable
+            if (orgBackfaces == 0) GlobalOptionsSet(SprConstants.SprGlobalBackfacesDisplay, 1);
+            if (orgEndcaps == 0) GlobalOptionsSet(SprConstants.SprGlobalEndcapsDisplay, 1);
+
             // Return false if the snapshot doesn't exist
-            if (!File.Exists(imgPath)) return false;
+            if (!File.Exists(imgPath)) return null;
 
             // Format the snapshot if required
-            return snapShot.OutputFormat == SprSnapshotFormat.Bmp || 
-                SprSnapShot.FormatSnapshot(imgPath, snapShot.OutputFormat);
+            if (snapShot.OutputFormat != SprSnapshotFormat.Bmp)
+                imgPath = SprSnapShot.FormatSnapshot(imgPath, snapShot.OutputFormat);
+
+            return imgPath;
+
+        }
+      
+        public bool ExportPDF(int quality, string path)
+        {
+            DrApi.ExportPDF(path, quality, 1, 1, 1);
+
+            return true;
         }
 
         #endregion
@@ -1665,6 +2140,8 @@ namespace SharpPlant.SharpPlantReview
             // Update the main view in SPR
             DrApi.ViewSetDbl(0, ref objViewdataDbl);
         }
+
+        //public void GotoLocation
 
         #endregion
 

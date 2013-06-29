@@ -26,6 +26,17 @@ namespace SharpPlant.SharpPlantReview
                 {"status", string.Empty}
             };
 
+
+        public static Dictionary<string, object> AnnotationTemplate = new Dictionary<string, object>()
+            {
+                {"id", 0},
+                {"type_id", 0},
+                {"bg_color", 0},
+                {"line_color", 0},
+                {"text_color", 0},
+                {"text_string", string.Empty},
+            };
+
         /// <summary>
         ///     Returns a 24-bit color integer.
         /// </summary>
@@ -73,6 +84,13 @@ namespace SharpPlant.SharpPlantReview
             const string regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags\";
             using (var regKey = Registry.CurrentUser.OpenSubKey(regPath, true))
             {
+                if (regKey == null)
+                {
+                    Registry.CurrentUser.CreateSubKey(regPath);
+                    SetTagRegistry(tag);
+                    return;
+                }
+                    
                 // Iterate through the attributes
                 foreach (var att in tagAtts)
                 {

@@ -27,6 +27,7 @@ namespace SharpPlant.SharpPlantReview
         internal static Exception SprFileExists = new Exception("The specified file already exists.");
         internal static Exception SprTagNotPlaced = new Exception("The provided tag has not been placed in SmartPlant Review.");
         internal static Exception SprNullPoint = new Exception("One or more required points are null.");
-        internal static Exception SprTagNotFound = new Exception("The desired tag does not exist in the Mdb database.");
+        internal static Exception SprTagNotFound = new Exception("The desired tag does not exist in the MDB database.");
+        internal static Exception SprAnnotationNotFound = new Exception("The desired annotation does not exist in the MDB database.");
     }
 }

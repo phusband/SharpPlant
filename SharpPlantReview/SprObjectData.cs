@@ -142,11 +142,6 @@ namespace SharpPlant.SharpPlantReview
         public int ObjectId { get; internal set; }
 
         /// <summary>
-        ///     The 3D point where the ObjectData was selected.
-        /// </summary>
-        public SprPoint3D SelectedPoint { get; internal set; }
-
-        /// <summary>
         ///     A collection of key/value pairs containing object label entries
         /// </summary>
         public Dictionary<string, string> LabelData { get; private set; }

@@ -5,6 +5,7 @@
 
 using System;
 using System.Drawing;
+using System.Collections.Generic;
 
 namespace SharpPlant.SharpPlantReview
 {
@@ -16,9 +17,36 @@ namespace SharpPlant.SharpPlantReview
         #region Annotation Properties
 
         /// <summary>
-        ///     Active COM reference to the DrAnnotationDbl class.
+        ///     The active COM reference to the DrAnnotationDbl class
         /// </summary>
-        internal dynamic DrAnnotationDbl;
+        internal dynamic DrAnnotationDbl
+        {
+            get
+            {
+                if (Data == null) return null;
+                dynamic drAnno = Activator.CreateInstance(SprImportedTypes.DrAnnotationDbl);
+                drAnno.BackgroundColor = Data["bg_color"];
+                drAnno.LineColor = Data["line_color"];
+                drAnno.TextColor = Data["text_color"];
+                drAnno.CenterPoint = CenterPoint.DrPointDbl;
+                drAnno.LeaderPoint = LeaderPoint.DrPointDbl;
+                drAnno.Flags = Flags;
+                drAnno.Text = Text;
+
+                return drAnno;
+            }
+            set
+            {
+                if (Data == null) return;
+                Data["bg_color"] = value.BackgroundColor;
+                Data["line_color"] = value.LineColor;
+                Data["text_color"] = value.TextColor;
+                CenterPoint = new SprPoint3D(value.CenterPoint.East, value.CenterPoint.North, value.CenterPoint.Elevation);
+                LeaderPoint = new SprPoint3D(value.LeaderPoint.East, value.LeaderPoint.North, value.LeaderPoint.Elevation);
+                Flags = value.Flags;
+                Text = value.Text;
+            }
+        }
 
         /// <summary>
         ///     The parent Application reference.
@@ -30,8 +58,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public Color BackgroundColor
         {
-            get { return IsActive ? SprUtilities.From0Bgr(DrAnnotationDbl.BackgroundColor) : Color.Empty; }
-            set { if (IsActive) DrAnnotationDbl.BackgroundColor = SprUtilities.Get0Bgr(value); }
+            get { return SprUtilities.From0Bgr((int) Data["bg_color"]); }
+            set { Data["bg_color"] = SprUtilities.Get0Bgr(value); }
         }
 
         /// <summary>
@@ -39,8 +67,12 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public Color LineColor
         {
-            get { return IsActive ? SprUtilities.From0Bgr(DrAnnotationDbl.LineColor) : Color.Empty; }
-            set { if (IsActive) DrAnnotationDbl.LineColor = SprUtilities.Get0Bgr(value); }
+            get { return SprUtilities.From0Bgr((int) Data["line_color"]); }
+            set
+            {
+                Data["line_color"] = SprUtilities.Get0Bgr(value);
+                if (DrAnnotationDbl != null) DrAnnotationDbl.LineColor = Data["line_color"];
+            }
         }
 
         /// <summary>
@@ -48,8 +80,12 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public Color TextColor
         {
-            get { return IsActive ? SprUtilities.From0Bgr(DrAnnotationDbl.TextColor) : Color.Empty; }
-            set { if (IsActive) DrAnnotationDbl.TextColor = SprUtilities.Get0Bgr(value); }
+            get { return SprUtilities.From0Bgr((int)Data["text_color"]); }
+            set
+            {
+                Data["text_color"] = SprUtilities.Get0Bgr(value);
+                if (DrAnnotationDbl != null) DrAnnotationDbl.TextColor = Data["text_color"];
+            }
         }
 
         /// <summary>
@@ -59,14 +95,17 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                return IsActive ? new SprPoint3D(DrAnnotationDbl.CenterPoint) : null;
+                if (!IsPlaced) return new SprPoint3D(0, 0, 0);
+                return new SprPoint3D(Convert.ToDouble(Data["center_x"]),
+                                      Convert.ToDouble(Data["center_y"]),
+                                      Convert.ToDouble(Data["center_z"]));
             }
             set
             {
-                if (!IsActive) return;
-                DrAnnotationDbl.CenterPoint.East = value.East;
-                DrAnnotationDbl.CenterPoint.North = value.North;
-                DrAnnotationDbl.CenterPoint.Elevation = value.Elevation;
+                if (!IsPlaced) return;
+                Data["center_x"] = value.East;
+                Data["center_y"] = value.North;
+                Data["center_z"] = value.Elevation;
             }
         }
 
@@ -77,14 +116,17 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                return IsActive ? new SprPoint3D(DrAnnotationDbl.LeaderPoint) : null;
+                if (!IsPlaced) return new SprPoint3D(0, 0, 0);
+                return new SprPoint3D(Convert.ToDouble(Data["leader_x"]),
+                                      Convert.ToDouble(Data["leader_y"]),
+                                      Convert.ToDouble(Data["leader_z"]));
             }
             set
             {
-                if (!IsActive) return;
-                DrAnnotationDbl.LeaderPoint.East = value.East;
-                DrAnnotationDbl.LeaderPoint.North = value.North;
-                DrAnnotationDbl.LeaderPoint.Elevation = value.Elevation;
+                var pt = new SprPoint3D(value);
+                Data["leader_x"] = value.East;
+                Data["leader_y"] = value.North;
+                Data["leader_z"] = value.Elevation;
             }
         }
 
@@ -96,15 +138,20 @@ namespace SharpPlant.SharpPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (DrAnnotationDbl.Flags & SprConstants.SprAnnoLeader) != 0;
+                return (Flags & SprConstants.SprAnnoLeader) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) DrAnnotationDbl.Flags |= SprConstants.SprAnnoLeader;
-                else DrAnnotationDbl.Flags &= ~SprConstants.SprAnnoLeader;
+                if (value) Flags |= SprConstants.SprAnnoLeader;
+                else Flags &= ~SprConstants.SprAnnoLeader;
             }
         }
+
+        /// <summary>
+        ///     Holds the tag bitmask values used for annotation placement.
+        /// </summary>
+        internal int Flags { get; set; }
 
         /// <summary>
         ///     Indicates whether an arrowhead will be present.
@@ -114,13 +161,13 @@ namespace SharpPlant.SharpPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (DrAnnotationDbl.Flags & SprConstants.SprAnnoArrow) != 0;
+                return (Flags & SprConstants.SprAnnoArrow) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) DrAnnotationDbl.Flags |= SprConstants.SprAnnoArrow;
-                else DrAnnotationDbl.Flags &= ~SprConstants.SprAnnoArrow;
+                if (value) Flags |= SprConstants.SprAnnoArrow;
+                else Flags &= ~SprConstants.SprAnnoArrow;
             }
         }
 
@@ -132,13 +179,13 @@ namespace SharpPlant.SharpPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (DrAnnotationDbl.Flags & SprConstants.SprAnnoBackground) != 0;
+                return (Flags & SprConstants.SprAnnoBackground) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) DrAnnotationDbl.Flags |= SprConstants.SprAnnoBackground;
-                else DrAnnotationDbl.Flags &= ~SprConstants.SprAnnoBackground;
+                if (value) Flags |= SprConstants.SprAnnoBackground;
+                else Flags &= ~SprConstants.SprAnnoBackground;
             }
         }
 
@@ -150,45 +197,62 @@ namespace SharpPlant.SharpPlantReview
             get
             {
                 // Return the bitwise zero check
-                return (DrAnnotationDbl.Flags & SprConstants.SprAnnoPersist) != 0;
+                return (Flags & SprConstants.SprAnnoPersist) != 0;
             }
             set
             {
                 // Set flag true/false
-                if (value) DrAnnotationDbl.Flags |= SprConstants.SprAnnoPersist;
-                else DrAnnotationDbl.Flags &= ~SprConstants.SprAnnoPersist;
+                if (value) Flags |= SprConstants.SprAnnoPersist;
+                else Flags &= ~SprConstants.SprAnnoPersist;
             }
         }
 
         /// <summary>
-        ///     Annotation text.
+        ///     The annotation text string.
         /// </summary>
         public string Text
         {
-            get { return IsActive ? DrAnnotationDbl.Text : null; }
-            set { if (IsActive) DrAnnotationDbl.Text = value; }
+            get { return Data["text_string"].ToString(); }
+            set { Data["text_string"] = value; }
         }
 
         /// <summary>
-        ///     The session unique ObjectID of the annotation.
+        ///     The session unique ID of the annotation.
         /// </summary>
-        public int AnnotationId { get; internal set; }
-
+        public int Id
+        {
+            get { return Convert.ToInt32(Data["id"]); }
+            internal set { Data["id"] = value; }
+        }
+            
         /// <summary>
         ///     The object associated with the annotation.
         /// </summary>
-        public SprObjectData AssociatedObject { get; internal set; }
+        public SprObjectData AssociatedObject
+        {
+            get
+            {
+                try { return Application.GetObjectData(Convert.ToInt32(Data["object_id"])); }
+                catch (KeyNotFoundException) { return null; }
+            }
+            internal set
+            {
+                try { Data["object_id"] = value.ObjectId; }
+                catch (KeyNotFoundException) { }
+            }
+        }
 
         /// <summary>
         ///     Annotation type.
         /// </summary>
         public string Type { get; set; }
 
-        // Determines if a reference to the COM object is established
-        private bool IsActive
-        {
-            get { return DrAnnotationDbl != null; }
-        }
+        /// <summary>
+        ///     The full information profile of the current annotation.  Controls all the annotation properties.
+        /// </summary>
+        public Dictionary<string, object> Data { get; set; }
+
+        public bool IsPlaced { get; internal set; }
 
         #endregion
 
@@ -198,11 +262,20 @@ namespace SharpPlant.SharpPlantReview
             // Link the parent application
             Application = SprApplication.ActiveApplication;
 
-            // Get a new DrAnnotationDbl object
+            // Create the backing Annotation object
             DrAnnotationDbl = Activator.CreateInstance(SprImportedTypes.DrAnnotationDbl);
 
+            // Set as not placed by default
+            IsPlaced = false;
+
             // Set the default flags
-            DrAnnotationDbl.Flags |= SprConstants.SprAnnoLeader | SprConstants.SprAnnoBackground;
+            Flags |= SprConstants.SprAnnoLeader | SprConstants.SprAnnoBackground;
+
+            // Create a new data dictionary from the template
+            Data = SprUtilities.AnnotationTemplate;
+
+            // Set the tag to the next available tag number
+            Id = Application.NextAnnotation;
 
             // Set the default annotation type
             Type = "Standard";

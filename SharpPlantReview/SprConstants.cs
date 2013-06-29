@@ -40,6 +40,8 @@ namespace SharpPlant.SharpPlantReview
         public const int SprGlobalAnnoDataDisplay = 11;
         public const int SprGlobalAnnoVolumeDisplay = 12;
         public const int SprGlobalMeasurementDisplay = 15;
+        public const int SprGlobalBackfacesDisplay = 16;
+        public const int SprGlobalEndcapsDisplay = 17;
         public const int SprGlobalFileInfoMode = 47;
 
         // Views
