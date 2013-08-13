@@ -1,0 +1,170 @@
+<!doctype html>
+<!-- The Time Machine GitHub pages theme was designed and developed by Jon Rohan, on Feb 7, 2012. -->
+<!-- Follow him for fun. http://twitter.com/jonrohan. Tail his code on http://github.com/jonrohan -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  <link rel="stylesheet" href="stylesheets/stylesheet.css" media="screen"/>
+  <link rel="stylesheet" href="stylesheets/pygment_trac.css"/>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  <script type="text/javascript" src="javascripts/script.js"></script>
+
+  <title>SharpPlant</title>
+  <meta name="description" content="C# Wrapper for SmartPlant APIs">
+
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <header>
+      <h1 class="title">SharpPlant</h1>
+    </header>
+    <div id="container">
+      <p class="tagline">C# Wrapper for SmartPlant APIs</p>
+      <div id="main" role="main">
+        <div class="download-bar">
+        <div class="inner">
+          <a href="https://github.com/Allockse/SharpPlant/tarball/master" class="download-button tar"><span>Download</span></a>
+          <a href="https://github.com/Allockse/SharpPlant/zipball/master" class="download-button zip"><span>Download</span></a>
+          <a href="https://github.com/Allockse/SharpPlant" class="code">View SharpPlant on GitHub</a>
+        </div>
+        <span class="blc"></span><span class="trc"></span>
+        </div>
+        <article class="markdown-body">
+          <p><img src="http://i1272.photobucket.com/albums/y394/allockse/Development/SharpPlant_zps70fa0e1c.jpeg" alt="SharpPlant Logo"></p>
+
+<p>SharpPlant is a .NET wrapper for Intergraph SmartPlant® products, written in C#.  It was designed to simplify .NET development, as well as provide additional API functionality as needed.  The initial release of this API covers SmartPlant® Review only.  However as time, resources and community involvement picks up, the roadmap is planned to expand into further Intergraph products.  You can view more about the Intergraph SmartPlant® product line at <a href="http://www.intergraph.com">http://www.intergraph.com</a></p>
+
+<h2>
+<a name="how-to-get-started" class="anchor" href="#how-to-get-started"><span class="octicon octicon-link"></span></a>How to Get Started</h2>
+
+<ul>
+<li>
+<a href="https://github.com/Allockse/SharpPlant/archive/master.zip">Download</a> the latest SharpPlant project zip and build the dll in Visual Studio, or your preferred .NET IDE.</li>
+<li>Add the SharpPlant.dll as a reference to a new or existing .NET solution to make the classes/methods available.</li>
+<li>SharpPlant <b>requires .NET 4.0</b> or higher as it implements dynamic variables at runtime.</li>
+</ul><h2>
+<a name="example-usage" class="anchor" href="#example-usage"><span class="octicon octicon-link"></span></a>Example Usage</h2>
+
+<h3>
+<a name="creating-an-application-reference" class="anchor" href="#creating-an-application-reference"><span class="octicon octicon-link"></span></a>Creating an application reference:</h3>
+
+<div class="highlight"><pre> <span class="c1">// Create a new application object</span>
+ <span class="kt">var</span> <span class="n">sprApp</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SprApplication</span><span class="p">();</span>
+
+</pre></div>
+
+<h3>
+<a name="updating-the-application-text-window" class="anchor" href="#updating-the-application-text-window"><span class="octicon octicon-link"></span></a>Updating the application text window:</h3>
+
+<div class="highlight"><pre> <span class="c1">// Update the application text window</span>
+ <span class="n">sprApp</span><span class="p">.</span><span class="n">TextWindow_Update</span><span class="p">(</span><span class="s">"SharpPlant loaded successfully"</span><span class="p">);</span>
+
+</pre></div>
+
+<h3>
+<a name="placing-a-new-tag" class="anchor" href="#placing-a-new-tag"><span class="octicon octicon-link"></span></a>Placing a new tag:</h3>
+
+<div class="highlight"><pre> <span class="c1">// Create a new tag object</span>
+ <span class="kt">var</span> <span class="n">newTag</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SprTag</span><span class="p">();</span>
+
+ <span class="c1">// Set the tag properties</span>
+ <span class="n">newTag</span><span class="p">.</span><span class="n">Text</span> <span class="p">=</span> <span class="s">"High-point vent required as per P&amp;ID"</span><span class="p">;</span>
+ <span class="n">newTag</span><span class="p">.</span><span class="n">Discipline</span> <span class="p">=</span> <span class="s">"Piping"</span><span class="p">;</span>
+ <span class="n">newTag</span><span class="p">.</span><span class="n">Creator</span> <span class="p">=</span> <span class="s">"ExampleUser"</span><span class="p">;</span>
+
+ <span class="c1">// Place the tag in the active application</span>
+ <span class="n">sprApp</span><span class="p">.</span><span class="n">Tags_Place</span><span class="p">(</span><span class="k">ref</span> <span class="n">newTag</span><span class="p">);</span>
+
+</pre></div>
+
+<h3>
+<a name="placing-a-new-annotation" class="anchor" href="#placing-a-new-annotation"><span class="octicon octicon-link"></span></a>Placing a new annotation:</h3>
+
+<div class="highlight"><pre> <span class="c1">// Create a new annotation object</span>
+ <span class="kt">var</span> <span class="n">newAnno</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SprAnnotation</span><span class="p">();</span>
+
+ <span class="c1">// Set the annotation properties</span>
+ <span class="n">newAnno</span><span class="p">.</span><span class="n">Text</span> <span class="p">=</span> <span class="s">"Removable handrail"</span><span class="p">;</span>
+ <span class="n">newAnno</span><span class="p">.</span><span class="n">DisplayBackground</span> <span class="p">=</span> <span class="k">true</span><span class="p">;</span>
+ <span class="n">newAnno</span><span class="p">.</span><span class="n">DisplayLeader</span> <span class="p">=</span> <span class="k">true</span><span class="p">;</span>
+ <span class="n">newAnno</span><span class="p">.</span><span class="n">BackgroundColor</span> <span class="p">=</span> <span class="n">System</span><span class="p">.</span><span class="n">Drawing</span><span class="p">.</span><span class="n">Color</span><span class="p">.</span><span class="n">Green</span><span class="p">;</span>
+ <span class="n">newAnno</span><span class="p">.</span><span class="n">Persistent</span> <span class="p">=</span> <span class="k">true</span><span class="p">;</span>
+
+ <span class="c1">// Place the annotation in the active application</span>
+ <span class="n">sprApp</span><span class="p">.</span><span class="n">Annotations_Place</span><span class="p">(</span><span class="k">ref</span> <span class="n">newAnno</span><span class="p">);</span>
+
+</pre></div>
+
+<h3>
+<a name="taking-a-snapshot" class="anchor" href="#taking-a-snapshot"><span class="octicon octicon-link"></span></a>Taking a snapshot:</h3>
+
+<div class="highlight"><pre> <span class="c1">// Create a new snapshot object</span>
+ <span class="kt">var</span> <span class="n">newSnap</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SprSnapShot</span><span class="p">();</span>
+
+ <span class="c1">// Set the snapshot properties</span>
+ <span class="n">newSnap</span><span class="p">.</span><span class="n">AntiAlias</span> <span class="p">=</span> <span class="m">3</span><span class="p">;</span>
+ <span class="n">newSnap</span><span class="p">.</span><span class="n">OutputFormat</span> <span class="p">=</span> <span class="n">SprSnapshotFormat</span><span class="p">.</span><span class="n">Png</span><span class="p">;</span>
+ <span class="n">newSnap</span><span class="p">.</span><span class="n">Overwrite</span> <span class="p">=</span> <span class="k">true</span><span class="p">;</span>
+
+ <span class="c1">// Take the snapshot</span>
+ <span class="n">sprApp</span><span class="p">.</span><span class="n">TakeSnapshot</span><span class="p">(</span><span class="n">newSnap</span><span class="p">,</span> <span class="s">"TestImage"</span><span class="p">,</span> <span class="s">@"C:\TestSnapshots\"</span><span class="p">);</span>
+
+</pre></div>
+
+<h3>
+<a name="collect-object-information" class="anchor" href="#collect-object-information"><span class="octicon octicon-link"></span></a>Collect object information:</h3>
+
+<div class="highlight"><pre> <span class="c1">// Prompt a user to select an object in the active application instance</span>
+ <span class="kt">var</span> <span class="n">newObjectData</span> <span class="p">=</span> <span class="n">sprApp</span><span class="p">.</span><span class="n">GetObjectData</span><span class="p">(</span><span class="s">"Select an object to view"</span><span class="p">);</span>
+
+</pre></div>
+
+<h2>
+<a name="release-history" class="anchor" href="#release-history"><span class="octicon octicon-link"></span></a>Release History</h2>
+
+<ul>
+<li>4/8/2013 Initial release</li>
+<li>8/12/2013 Beta 0.4 Release</li>
+</ul><h2>
+<a name="contributors" class="anchor" href="#contributors"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p><a href="https://github.com/Allockse">Parrish Husband</a></p>
+
+<h2>
+<a name="supportdiscussion" class="anchor" href="#supportdiscussion"><span class="octicon octicon-link"></span></a>Support/Discussion</h2>
+
+<p><a href="http://www.davetyner.com/forum/forumdisplay.php?127-Sharp-Plant">Official support thread at DaveTyner.com</a></p>
+
+<h2>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>SharpPlant is available under the MIT license. See the LICENSE file for more info.</p>
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="owner">
+      <p><a href="https://github.com/Allockse" class="avatar"><img src="https://secure.gravatar.com/avatar/1ebb7885f92d4f34586230a518389b75?s=30&amp;d=https://a248.e.akamai.net/assets.github.com%2Fimages%2Fgravatars%2Fgravatar-user-420.png" width="48" height="48"/></a> <a href="https://github.com/Allockse">Allockse</a> maintains <a href="https://github.com/Allockse/SharpPlant">SharpPlant</a></p>
+
+
+      </div>
+      <div class="creds">
+        <small>This page generated using <a href="https://pages.github.com/">GitHub Pages</a><br/>theme by <a href="https://twitter.com/jonrohan/">Jon Rohan</a></small>
+      </div>
+    </footer>
+  </div>
+  <div class="current-section">
+    <a href="#top">Scroll to top</a>
+    <a href="https://github.com/Allockse/SharpPlant/tarball/master" class="tar">tar</a><a href="https://github.com/Allockse/SharpPlant/zipball/master" class="zip">zip</a><a href="" class="code">source code</a>
+    <p class="name"></p>
+  </div>
+
+  
+</body>
+</html>
