@@ -203,29 +203,57 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
+        ///     Determines if the tag has labels linked to the MDB2
+        /// </summary>
+        public bool IsDataLinked
+        {
+            get
+            {
+                return Labels != null;
+            }
+        }
+
+        /// <summary>
+        ///     The Key/Value label collection associated with the tag.
+        /// </summary>
+        public Dictionary<string,string> Labels
+        {
+            get
+            {
+                if (_labels == null)
+                {
+                    _labels = GetLabels();
+                    return _labels;
+                }
+                return _labels;
+            }
+        }
+        private Dictionary<string, string> _labels;
+
+        /// <summary>
+        ///     The model number linked to the tagged object.
+        /// </summary>
+        public string ModelNumber
+        {
+            get
+            {
+                if (_modelNumber == null)
+                {
+                    _modelNumber = GetModelNumber();
+                    return _modelNumber;
+                }
+                else return _modelNumber;
+            }
+        }
+        private string _modelNumber;
+
+        /// <summary>
         ///     Tag unique identification number.
         /// </summary>
         public int Id
         {
             get { return Convert.ToInt32(Data["tag_unique_id"]); }
             private set { Data["tag_unique_id"] = value; }
-        }
-
-        /// <summary>
-        ///     The object the tag is attached to, if any.
-        /// </summary>
-        public SprObjectData AssociatedObject
-        { 
-            get
-            {
-                try { return Application.GetObjectData(Convert.ToInt32(Data["object_id"])); }
-                catch (KeyNotFoundException){ return null; } 
-            }
-            internal set
-            {
-                try { Data["object_id"] = value.ObjectId; }
-                catch (KeyNotFoundException) { } 
-            }
         }
 
         /// <summary>
@@ -265,6 +293,121 @@ namespace SharpPlant.SharpPlantReview
 
             // Set the default status
             Status = "Open";
+
+            // Set the backing properties to null by default
+            _labels = null;
+            _modelNumber = null;
+        }
+
+        // Query the MDB2 database for the labels
+        private Dictionary<string,string> GetLabels()
+        {
+            // Create the return hashtable
+            var returnData = new Dictionary<string, string>();
+
+            // Build the linkage address
+            var linkID = string.Format("{0} {1} {2} {3}", Data["linkage_id_0"], Data["linkage_id_1"],
+                                                          Data["linkage_id_2"], Data["linkage_id_3"]);
+
+            // Build the connection string to the MDB2 file
+            var connectionFormat = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source={0}2;";
+            var connectionString = string.Format(connectionFormat, Application.MdbPath);
+
+            // Create the connection
+            using (var connection = new System.Data.OleDb.OleDbConnection(connectionString))
+            {
+                // Open the MDB2 connection
+                connection.Open();
+
+                // Create a command
+                var command = connection.CreateCommand();
+
+                // Build the commandstring
+                command.CommandText = string.Format("SELECT linkage_index FROM linkage WHERE DMRSLinkage = '{0}'", linkID);
+                
+                // Get the linkage address
+                object linkageIndex = null;
+                try
+                {
+                    linkageIndex = command.ExecuteScalar();
+                }
+                catch (System.Data.OleDb.OleDbException)
+                {
+                }
+
+                // Return if the linkage was not found
+                if (linkageIndex == null)
+                    return null;
+
+                // Build the string to gather label information
+                command.CommandText = "SELECT label_names.label_name, label_values.label_value " +
+                                      "FROM (labels INNER JOIN label_names ON labels.label_name_index = label_names.label_name_index) " +
+                                      "INNER JOIN label_values ON labels.label_value_index = label_values.label_value_index " +
+                                      "WHERE(((labels.linkage_index) = " + linkageIndex + ")) " +
+                                      "ORDER BY labels.label_line_number";
+
+                // Create a datareader to walk through the label data
+                using (var reader = command.ExecuteReader())
+                {
+                    // Iterate through the end of the data
+                    while (reader.Read())
+                    {
+                        // Set the kev/value
+                        var key = reader.GetString(0);
+                        var value = reader.GetString(1);
+
+                        // Add non-duplicate keys to the hashtable
+                        if (!returnData.ContainsKey(key))
+                        {
+                            returnData.Add(key, value);
+                        }
+                    }
+                }
+            }
+
+            // Return the hashtable
+            if (returnData.Count > 0)
+                return returnData;
+            return null;
+
+        }
+
+        // Query the MDB2 database for the model number
+        private string GetModelNumber()
+        {
+            // Build the linkage address
+            var linkID = string.Format("{0} {1} {2} {3}", Data["linkage_id_0"], Data["linkage_id_1"],
+                                                          Data["linkage_id_2"], Data["linkage_id_3"]);
+
+            // Build the connection string
+            var connectionFormat = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source={0}2;";
+            var connectionString = string.Format(connectionFormat, Application.MdbPath);
+
+            // Create a connection to the MDB2
+            using (var connection = new System.Data.OleDb.OleDbConnection(connectionString))
+            {
+                // Open the MDB2 connection
+                connection.Open();
+
+                // Build the command
+                var command = connection.CreateCommand();
+                command.CommandText = string.Format("SELECT file_name FROM linkage WHERE DMRSLinkage = '{0}'", linkID);
+                
+                // Get the model number
+                string modelNumber = null;
+                try
+                {
+                    modelNumber = command.ExecuteScalar().ToString();
+                }
+                catch (System.Data.OleDb.OleDbException)
+                {
+                }
+                
+                // Return the model number
+                if (modelNumber == null)
+                    return "Model Not Found";
+                return modelNumber;
+            }
         }
     }
 }

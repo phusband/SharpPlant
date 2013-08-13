@@ -62,6 +62,7 @@ namespace SharpPlant.SharpPlantReview
         public const int SprErrorInvalidTag = 16;
         public const int SprErrorOutOfMemory = 19;
         public const int SprErrorApiOutOfMemory = 20;
+        public const int SprErrorInvalidViewMask = 22;
         public const int SprErrorInvalidObjectId = 23;
         public const int SprErrorInvalidFileName = 29;
         public const int SprErrorDirectoryWriteFailure = 30;

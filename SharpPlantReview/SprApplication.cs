@@ -541,6 +541,56 @@ namespace SharpPlant.SharpPlantReview
             return returnVal;
         }
 
+        /// <summary>
+        ///     Highlights a specified object in the main SmartPlant Review application Window
+        /// </summary>
+        /// <param name="objectId">Object Id of the of the entity to be highlighted.</param>
+        public void HighlightObject(int objectId)
+        {
+            // Highlight the object in SPR
+            int sprResult = DrApi.HighlightObject(objectId, 1, 0);
+
+            // Handle the errors
+            switch (sprResult)
+            {
+                case SprConstants.SprErrorNoApi:
+                    throw SprExceptions.SprNotConnected;
+                case SprConstants.SprErrorInvalidObjectId:
+                    throw SprExceptions.SprInvalidObjectId;
+                case SprConstants.SprErrorInvalidViewMask:
+                    throw SprExceptions.SprInvalidView;
+            }
+        }
+
+        /// <summary>
+        ///     Clears all highlighting from the main SmartPlant Review application window.
+        /// </summary>
+        public void HighlightClear()
+        {
+            // Clear the highlighting in SPR 
+            int sprResult = DrApi.HighlightExit(1);
+
+            // Handle the errors
+            switch (sprResult)
+            {
+                case SprConstants.SprErrorNoApi:
+                    throw SprExceptions.SprNotConnected;
+                case SprConstants.SprErrorInvalidViewMask:
+                    throw SprExceptions.SprInvalidView;
+            }
+
+            // Refresh the main window
+            sprResult = DrApi.ViewUpdate(1);
+
+            // Handle the errors
+            switch (sprResult)
+            {
+                case SprConstants.SprErrorNoApi:
+                    throw SprExceptions.SprNotConnected;
+            }
+            
+        }
+
         #endregion
 
         #region Point Select
@@ -1148,9 +1198,6 @@ namespace SharpPlant.SharpPlantReview
             // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the params
-            dynamic tagKey = Activator.CreateInstance(SprImportedTypes.DrKey);
-
             // Create the origin point
             var tagOrigin = new SprPoint3D();
 
@@ -1177,12 +1224,19 @@ namespace SharpPlant.SharpPlantReview
             // Throw an exception if either of the point retrievals failed
             if (objId == 0 || tagLeader == null) throw SprExceptions.SprNullPoint;
 
+            // Get the current object for the label key
+            var currentObject = GetObjectData(objId);
+            dynamic tagLabelKey = currentObject.DrObjectDataDbl.LabelKey;
+
+            // Turn label tracking on on the flag bitmask
+            tag.Flags |= SprConstants.SprTagLabel;
+
             // Set the tag registry values
             SprUtilities.SetTagRegistry(tag);
 
             // Place the tag
             int sprResult = DrApi.TagSetDbl(tag.Id, 0, tag.Flags, ref tagLeader.DrPointDbl,
-                                            ref tagOrigin.DrPointDbl, tagKey, tag.Text);
+                                            ref tagOrigin.DrPointDbl, tagLabelKey, tag.Text);
 
             // Handle the errors
             switch (sprResult)
@@ -1202,15 +1256,6 @@ namespace SharpPlant.SharpPlantReview
 
             // Retrieve the placed tag data
             tag = Tags_Get(tag.Id);
-
-            // Add an ObjectId field
-            Tags_AddDataField("object_id");
-
-            // Save the ObjectId to the tag data
-            tag.Data["object_id"] = objId;
-
-            // Update the tag
-            Tags_Update(tag);
 
             // Clear the tag registry
             SprUtilities.ClearTagRegistry();
@@ -1273,18 +1318,19 @@ namespace SharpPlant.SharpPlantReview
             // Throw an exception if either of the point retrievals failed
             if (objId == 0 || tagLeader == null) throw SprExceptions.SprNullPoint;
 
-            // Create DrKey object
-            dynamic tagKey = Activator.CreateInstance(SprImportedTypes.DrKey);
+            // Get the current object for the label key
+            var currentObject = GetObjectData(objId);
+            dynamic tagLabelKey = currentObject.DrObjectDataDbl.LabelKey;
 
-            // Throw an exception if the key is null
-            if (tagKey == null) throw SprExceptions.SprObjectCreateFail;
+            // Turn label tracking on on the flag bitmask
+            tag.Flags |= SprConstants.SprTagLabel;
 
             // Set the edit flag on the existing tag
             tag.Flags |= SprConstants.SprTagEdit;
 
             // Update the tag with the new leader points
             int sprResult = DrApi.TagSetDbl(tag.Id, 0, tag.Flags, tagLeader.DrPointDbl,
-                                                tagOrigin.DrPointDbl, tagKey, tagText);
+                                                tagOrigin.DrPointDbl, tagLabelKey, tagText);
 
             // Handle the errors
             switch (sprResult)
@@ -1310,12 +1356,6 @@ namespace SharpPlant.SharpPlantReview
             var newLeader = tag.OriginPoint;
             tag.LeaderPoint = newLeader;
             tag.OriginPoint = newOrigin;
-
-            // Add an ObjectId field
-            Tags_AddDataField("object_id");
-
-            // Save the ObjectId in the tag LabelKey spot
-            tag.Data["object_id"] = objId;
 
             // Update the tag
             Tags_Update(tag);

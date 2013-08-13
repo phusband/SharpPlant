@@ -9,6 +9,7 @@ using System.Data.OleDb;
 using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Collections.Generic;
 
 // OleDB Database methods
 
@@ -19,7 +20,7 @@ namespace SharpPlant
         public static DataTable GetDbTable(string dbPath, string tableName)
         {
             // Create the return table
-            var returnTable = new DataTable(tableName);
+            DataTable returnTable;
 
             // Set the initial connection type
             var conType = ConnectionType.Ace;
@@ -34,11 +35,18 @@ namespace SharpPlant
                     // Open the connection
                     connection.Open();
 
+                    // Get the table schema
+                    returnTable = new DataTable(tableName);
+                   
                     // Build the select command
                     var selectCommand = GetSelectCommand(tableName, connection);
+                    selectCommand.CommandType = CommandType.TableDirect;
 
                     // Create the data adapter
                     var adapter = new OleDbDataAdapter(selectCommand);
+
+                    // Get the table schema
+                    adapter.FillSchema(returnTable, SchemaType.Mapped);
 
                     // Fill the return table
                     adapter.Fill(returnTable);
@@ -129,7 +137,6 @@ namespace SharpPlant
         {
             return UpdateDbTable(dbPath, string.Empty, inputTable);
         }
-
         public static bool UpdateDbTable(string dbPath, string rowFilter, DataTable inputTable)
         {
             // Create the connection
@@ -148,6 +155,36 @@ namespace SharpPlant
 
                     // Update the MDB table
                     adapter.Update(inputTable);
+
+                } // Return false on error
+                catch (OleDbException ex)
+                {
+                    throw ex;
+                    //return false;
+                }
+            }
+
+            // Return true on success
+            return true;
+        }
+        public static bool UpdateDbTable(string dbPath, DataRow row)
+        {
+            // Create the connection
+            using (var connection = GetConnection(dbPath))
+            {
+                try
+                {
+                    // Open the connection
+                    connection.Open();
+
+                    // Create the adapter
+                    var adapter = new OleDbDataAdapter();
+
+                    // Create the update command
+                    adapter.UpdateCommand = GetUpdateCommand(row, connection);
+
+                    // Update the MDB table
+                    var rowCount = adapter.Update(new DataRow[] { row });
 
                 } // Return false on error
                 catch (OleDbException ex)
@@ -247,13 +284,13 @@ namespace SharpPlant
 
                 // Create the column parameter
                 var par = new OleDbParameter
-                    {
-                        ParameterName = col.ColumnName,
-                        OleDbType = GetOleDbType(col.DataType),
-                        Size = col.MaxLength,
-                        SourceColumn = col.ColumnName,
-                    };
-                    
+                {
+                    ParameterName = "@" + col.ColumnName,
+                    OleDbType = GetOleDbType(col.DataType),
+                    Size = col.MaxLength,
+                    SourceColumn = col.ColumnName,
+                };
+
                 // Add the parameter to the return command
                 retCommand.Parameters.Add(par);
             }
@@ -264,6 +301,53 @@ namespace SharpPlant
             // Add a where clause if a rowfilter was provided
             if (rowFilter != string.Empty)
                 sb.AppendFormat("WHERE {0}", rowFilter);
+
+            // Set the command text
+            retCommand.CommandText = sb.ToString();
+
+            // Return the command
+            return retCommand;
+        }
+        private static OleDbCommand GetUpdateCommand(DataRow row, OleDbConnection connection)
+        {
+            // Create the return command
+            var retCommand = connection.CreateCommand();
+
+            // Get the parent table
+            var parentTable = row.Table;
+
+            // Get the primary Key
+            var pKey = parentTable.PrimaryKey[0];
+
+            // Build the command string
+            var sb = new StringBuilder(string.Format("UPDATE {0} SET ", parentTable.TableName));
+
+            foreach (DataColumn col in parentTable.Columns)
+            {
+                if (!col.Unique)
+                {
+                    // Append the command text
+                    sb.AppendFormat("{0} = ?, ", col.ColumnName);
+
+                    // Create the column parameter
+                    var par = new OleDbParameter
+                    {
+                        ParameterName = col.ColumnName,
+                        OleDbType = GetOleDbType(col.DataType),
+                        Size = col.MaxLength,
+                        SourceColumn = col.ColumnName,
+                    };
+
+                    // Add the parameter to the return command
+                    retCommand.Parameters.Add(par);
+                }
+            }
+
+            // Remove the last comma
+            sb.Remove(sb.ToString().LastIndexOf(','), 1);
+
+            // Add a where clause to the primary key
+            sb.AppendFormat("WHERE {0} = {1}", pKey.ColumnName, row[pKey.ColumnName]);
 
             // Set the command text
             retCommand.CommandText = sb.ToString();
