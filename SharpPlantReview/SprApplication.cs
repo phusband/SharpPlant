@@ -9,8 +9,8 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace SharpPlant.SharpPlantReview
 {
@@ -192,22 +192,11 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                // Return -1 if not connected
+                // Return -1 if SPR isn't running
                 if (!IsConnected) return -1;
 
-                // Create the parameter
-                var returnAnno = -1;
-
-                // Retrieve the MDB site table
-                var siteTable = DbMethods.GetDbTable(MdbPath, "site_table");
-
-                if (siteTable != null)
-
-                    // Set the next annotation number
-                    returnAnno = (int)siteTable.Rows[0]["next_text_anno_id"];
-
-                // Return the next annotation number
-                return returnAnno;
+                var tbl_Site = DbMethods.GetDbTable(MdbPath, "site_table");
+                return Convert.ToInt32(tbl_Site.Rows[0]["next_text_anno_id"]);
             }
         }
 
@@ -313,16 +302,10 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public SprApplication()
         {
-            // Set the static application for class parent referencing
             ActiveApplication = this;
-
-            // If only one instance of Spr is running
             if (SprProcesses.Length == 1)
-
-                // Connect to the SPR instance automatically
                 Connect();
 
-            // Create the default snapshot format
             DefaultSnapshot = new SprSnapShot
             {
                 AntiAlias = 3,
@@ -331,7 +314,6 @@ namespace SharpPlant.SharpPlantReview
                 Scale = 1
             };
 
-            // Set the default snapshot directories
             SprSnapShot.TempDirectory = Environment.GetEnvironmentVariable("TEMP");
             SprSnapShot.DefaultDirectory = Environment.SpecialFolder.MyPictures.ToString();
         }
@@ -360,13 +342,13 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>Boolean indicating success or failure of the operation.</returns>
         public bool Connect()
         {
-            // Clear the current Application
             DrApi = null;
-
-            // Get an instance of SmartPlant Review
-            DrApi = Activator.CreateInstance(SprImportedTypes.DrApi);
-
-            // Return the connection state
+            try
+            {
+                DrApi = Activator.CreateInstance(SprImportedTypes.DrApi);
+                return IsConnected;
+            }
+            catch{ }
             return IsConnected;
         }
 
@@ -400,26 +382,8 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="fileName">The full path of the session to load.</param>
         public void Open(string fileName)
         {
-            // Throw an error if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Try opening the file using the Api method call
             int sprResult = DrApi.SessionAttach(fileName);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidFileName:
-                    throw SprExceptions.SprInvalidFileName;
-                case SprConstants.SprErrorInvalidFileNumber:
-                    throw SprExceptions.SprInvalidFileNumber;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorApiInternal:
-                    throw SprExceptions.SprInternalError;
-            }
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -431,23 +395,11 @@ namespace SharpPlant.SharpPlantReview
         {
             // Check version compatibility
             int vers = int.Parse(Version.Substring(0,2));
-            if (vers < 9) return;
+            if (vers < 9)
+                throw SprExceptions.SprUnsupportedMethod;
 
-            // Export the current session to VUE
             int sprResult = DrApi.ExportVue(vueName, 0);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorApiInternal:
-                    throw SprExceptions.SprInternalError;
-                case SprConstants.SprErrorApiOutOfMemory:
-                    throw SprExceptions.SprOutOfMemory;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorFileWriteFailure:
-                    throw SprExceptions.SprFileWriteFailure;
-            }
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -455,18 +407,8 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void Exit()
         {
-            // Throw an error if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Exit the SPR application
             int sprResult = DrApi.ExitViewer();
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-            }
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -474,13 +416,9 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void RefreshData()
         {
-            // Thrown an error if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Set SPR to the front
             Activate();
-
-            // Send the update command
             SendKeys.SendWait("%TR");
         }
 
@@ -491,22 +429,8 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="value">The integer value to set the global option to.</param>
         public void GlobalOptionsSet(int option, int value)
         {
-            // Throw an exception if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Set the global option to the provided value
             int sprResult = DrApi.GlobalOptionsSet(option, value);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidGlobal:
-                    throw SprExceptions.SprInvalidGlobal;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-            }
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -516,28 +440,11 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>Integer value representing the current state of the option.</returns>
         public double GlobalOptionsGet(int option)
         {
-            // Throw an exception if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Create the return value
             double returnVal;
             int sprResult;
 
-            // Get the global option value
             sprResult = DrApi.GlobalOptionsGet(option, out returnVal);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidGlobal:
-                    throw SprExceptions.SprInvalidGlobal;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-            }
-
-            // Return the retrieved value
+            SprUtilities.ErrorHandler(sprResult);
             return returnVal;
         }
 
@@ -547,19 +454,8 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="objectId">Object Id of the of the entity to be highlighted.</param>
         public void HighlightObject(int objectId)
         {
-            // Highlight the object in SPR
             int sprResult = DrApi.HighlightObject(objectId, 1, 0);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidObjectId:
-                    throw SprExceptions.SprInvalidObjectId;
-                case SprConstants.SprErrorInvalidViewMask:
-                    throw SprExceptions.SprInvalidView;
-            }
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -567,28 +463,11 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void HighlightClear()
         {
-            // Clear the highlighting in SPR 
             int sprResult = DrApi.HighlightExit(1);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidViewMask:
-                    throw SprExceptions.SprInvalidView;
-            }
-
-            // Refresh the main window
             sprResult = DrApi.ViewUpdate(1);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-            }
-            
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         #endregion
@@ -603,32 +482,19 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>SprPoint3D representing the selected point.</returns>
         public SprPoint3D GetPoint(string prompt)
         {
-            // Throw an error if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the return point
             var returnPoint = new SprPoint3D();
-
-            // Create the params
             int abortFlag;
 
-            // Set the SPR application visible
             Activate();
 
             // Prompt the user for a 3D point inside SPR
             int sprResult = DrApi.PointLocateDbl(prompt, out abortFlag, ref returnPoint.DrPointDbl);
+            SprUtilities.ErrorHandler(sprResult);
 
             // Return null if the locate operation was aborted
             if (abortFlag != 0) return null;
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-            }
-
-            // Return the new point
             return returnPoint;
         }
 
@@ -644,32 +510,19 @@ namespace SharpPlant.SharpPlantReview
             // Throw an error if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the return point
             var returnPoint = new SprPoint3D();
-
-            // Create the params
             int abort;
             int objId;
             const int flag = 0;
 
-            // Set the SPR application visible
             Activate();
 
             // Prompt the user for a 3D point inside SPR
             int sprResult = DrApi.PointLocateExtendedDbl(prompt, out abort, ref returnPoint.DrPointDbl,
                                                          ref targetPoint.DrPointDbl, out objId, flag);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Return null if the locate operation was aborted
             if (abort != 0) return null;
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-            }
-
-            // Return the new point
             return returnPoint;
         }
 
@@ -694,29 +547,17 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>Integer value representing the selected Object Id.</returns>
         public int GetObjectId(string prompt, ref SprPoint3D refPoint)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the params
             const int filterFlag = 0;
             var returnId = -1;
 
-            // Set the SPR application visible
             Activate();
 
             // Prompt the user for a 3D point inside SPR
             int sprResult = DrApi.ObjectLocateDbl(prompt, filterFlag, out returnId, ref refPoint.DrPointDbl);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-            }
-
-            // Return the ObjectId
             return returnId;
         }
 
@@ -727,72 +568,26 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>SprObjectData object containing the retrieved information.</returns>
         public SprObjectData GetObjectData(int objectId)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the return object
             var returnData = new SprObjectData();
-
-            // Return null if the objectId is zero
-            if (objectId == 0) return null;
-
-            // Set the return object ID
             returnData.ObjectId = objectId;
-
-            // Get the DataDbl object
             int sprResult = DrApi.ObjectDataGetDbl(objectId, 2, ref returnData.DrObjectDataDbl);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorInvalidObjectId:
-                    throw SprExceptions.SprInvalidObjectId;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorApiOutOfMemory:
-                    throw SprExceptions.SprOutOfMemory;
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-            }
-
-            // Iterate through the labels
+            // Build the data label collection
             string lblName = string.Empty, lblValue = string.Empty;
             for (var i = 0; i < returnData.DrObjectDataDbl.LabelDataCount; i++)
             {
-                // Get the label key/value pair
                 sprResult = DrApi.ObjectDataLabelGet(ref lblName, ref lblValue, i);
-
-                // Handle the errors (added a 0 break since this loops)
-                switch (sprResult)
-                {
-                    case 0:
-                        break;
-                    case SprConstants.SprErrorInvalidParameter:
-                        throw SprExceptions.SprInvalidParameter;
-                    case SprConstants.SprErrorNoApi:
-                        throw SprExceptions.SprNotConnected;
-                }
+                SprUtilities.ErrorHandler(sprResult);
 
                 // Check if the label already exists
                 if (!returnData.LabelData.ContainsKey(lblName))
-
-                    // Add the label data to the dictionary
                     returnData.LabelData.Add(lblName, lblValue);
             }
 
-            // Return the data object
             return returnData;
-        }
-
-        /// <summary>
-        ///     Prompts a user to select an object inside SmartPlant Review.
-        ///     Retrieves object information from the selected object.
-        /// </summary>
-        /// <param name="prompt">The prompt string to be displayed in the application text window.</param>
-        /// <returns>The SprObjectData object containing the retrieved information.</returns>
-        public SprObjectData GetObjectData(string prompt)
-        {
-            return GetObjectData(prompt, false);
         }
 
         /// <summary>
@@ -802,15 +597,11 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="prompt">The prompt string to be displayed in the application text window.</param>
         /// <param name="singleObjects">Indicates if SmartPlant Review locates grouped objects individually.</param>
         /// <returns>The SprObjectData object containing the retrieved information.</returns>
-        public SprObjectData GetObjectData(string prompt, bool singleObjects)
+        public SprObjectData GetObjectData(string prompt, bool singleObjects = false)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Get the ObjectID on screen
             var objId = GetObjectId(prompt);
-
-            // Retrieve the Object data using the object Id;
             return GetObjectData(objId);
         }
 
@@ -828,15 +619,7 @@ namespace SharpPlant.SharpPlantReview
             
             // Send a blank string to the application text window
             int sprResult = DrApi.TextWindow(SprConstants.SprClearTextWindow, "Text View", string.Empty, 0);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorApiOutOfMemory:
-                    throw SprExceptions.SprOutOfMemory;
-            }
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -845,13 +628,9 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="mainText">String to be displayed in the text window.</param>
         public void TextWindow_Update(string mainText)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Get the existing title
             var existTitle = TextWindow_GetTitle();
-
-            // Set the text window without changing the title
             TextWindow_Update(mainText, existTitle);
         }
 
@@ -862,20 +641,11 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="titleText">String to be displayed in the title.</param>
         public void TextWindow_Update(string mainText, string titleText)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
             
             // Set the text window and title contents
             int sprResult = DrApi.TextWindow(SprConstants.SprClearTextWindow, titleText, mainText, 0);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorApiOutOfMemory:
-                    throw SprExceptions.SprOutOfMemory;
-            }
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -884,30 +654,15 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>The string containing the title string.</returns>
         public string TextWindow_GetTitle()
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the params
             var orgTitle = string.Empty;
             var orgText = string.Empty;
             int orgLength;
 
-            // Get the existing text window values
             int sprResult = DrApi.TextWindowGet(ref orgTitle, out orgLength, ref orgText);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorApiOutOfMemory:
-                    throw SprExceptions.SprOutOfMemory;
-                case SprConstants.SprErrorInvalidParameter:
-                    if (orgTitle == null || orgText == null) break;  // Ignore null parameters
-                    throw SprExceptions.SprInvalidParameter;
-            }
-
-            // Return the title, empty string if null
+            SprUtilities.ErrorHandler(sprResult);
+            
             return orgTitle ?? (string.Empty);
         }
 
@@ -917,33 +672,16 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>The string containing the text window contents.</returns>
         public string TextWindow_GetText()
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Params for retrieving SPR data
             var orgTitle = string.Empty;
             var orgText = string.Empty;
             int orgLength;
 
-            // Get the existing text window values
             int sprResult = DrApi.TextWindowGet(ref orgTitle, out orgLength, ref orgText);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorApiOutOfMemory:
-                    throw SprExceptions.SprOutOfMemory;
-                case SprConstants.SprErrorInvalidParameter:
-                    if (orgTitle == null || orgText == null) break; // Ignore null parameters
-                    throw SprExceptions.SprInvalidParameter;
-            }
-
-            // Set an empty string for null values
+            SprUtilities.ErrorHandler(sprResult);
+            
             return orgText ?? (string.Empty);
-
-            // Return the text
         }
 
         #endregion
@@ -956,6 +694,9 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="tag">The Tag to be written to the database.</param>
         public void Tags_Add(SprTag tag)
         {
+            // Get tbl_Tags
+            // Add new row
+            // Update MDB
             throw new NotImplementedException();
         }
 
@@ -967,10 +708,7 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>Indicates the success or failure of the table modification.</returns>
         public bool Tags_AddDataField(string fieldName)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Add the tag field to the MDB database
             return DbMethods.AddDbField(MdbPath, "tag_data", fieldName);
         }
 
@@ -978,39 +716,17 @@ namespace SharpPlant.SharpPlantReview
         ///     Deletes a tag from the active SmartPlant Review session.
         /// </summary>
         /// <param name="tagNo">Integer representing the tag number to delete.</param>
-        public void Tags_Delete(int tagNo)
-        {
-            Tags_Delete(tagNo, false);
-        }
-
-        /// <summary>
-        ///     Deletes a tag from the active SmartPlant Review session.
-        /// </summary>
-        /// <param name="tagNo">Integer representing the tag number to delete.</param>
         /// <param name="setAsNextTag">Determines if the tag number deleted is set as the next available tag number.</param>
-        public void Tags_Delete(int tagNo, bool setAsNextTag)
+        public void Tags_Delete(int tagNo, bool setAsNextTag = false)
         {
-            // Throw an exception if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Delete the desired tag
             int sprResult = DrApi.TagDelete(tagNo, 0);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorInvalidTag:
-                    throw SprExceptions.SprInvalidTag;
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-            }
-
-            // Set the deleted tag as the next tag number
             if (setAsNextTag)
                 Tags_SetNextTag(tagNo);
 
-            // Update the SmartPlant Review main view
-            DrApi.ViewUpdate(1);
+            sprResult = DrApi.ViewUpdate(1);
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -1019,19 +735,13 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="displayState">Determines the tag visibility state.</param>
         public void Tags_Display(SprTagVisibility displayState)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Clear the text window
             TextWindow_Clear();
-
-            // Set SPR to the front
             Activate();
 
             // Get the menu alias character from the enumerator
             var alias = Char.ConvertFromUtf32((int)displayState);
-
-            // Set the tag visibility
             SendKeys.SendWait(string.Format("%GS{0}", alias));
         }
 
@@ -1041,34 +751,20 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void Tags_SetNextTag()
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
+
+            var tbl_Site = DbMethods.GetDbTable(MdbPath, "site_table");
+            var tbl_Tags = DbMethods.GetDbTable(MdbPath, "tag_data");
             
-            // Get the tags
-            var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
-
-            // Exit if the tag table was not retrieved
-            if (tagTable == null) return;
-
-            // Retrieve the site table
-            var siteTable = DbMethods.GetDbTable(MdbPath, "site_table");
-
-            // Exit if the site table was not retrieved
-            if (siteTable == null) return;
-
-            // If tags exist
-            if (tagTable.Rows.Count > 0)
+            if (tbl_Tags.Rows.Count > 0)
 
                 // Set the next tag to the highest tag value + 1
-                siteTable.Rows[0]["next_tag_id"] =
-                    Convert.ToInt32(tagTable.Rows[tagTable.Rows.Count - 1]["tag_unique_id"]) + 1;
+                tbl_Site.Rows[0]["next_tag_id"] =
+                    Convert.ToInt32(tbl_Tags.Rows[tbl_Tags.Rows.Count - 1]["tag_unique_id"]) + 1;
             else
+                tbl_Site.Rows[0]["next_tag_id"] = 1;
 
-                // Set the next tag to 1
-                siteTable.Rows[0]["next_tag_id"] = 1;
-
-            // Update the site table
-            DbMethods.UpdateDbTable(MdbPath, siteTable);
+            DbMethods.UpdateDbTable(MdbPath, tbl_Site);
         }
 
         /// <summary>
@@ -1077,32 +773,12 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="tagNo">Integer of the new next_tag_id value.</param>
         public void Tags_SetNextTag(int tagNo)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Get the current database
-            var siteTable = DbMethods.GetDbTable(MdbPath, "site_table");
-
-            // Exit if the table is null
-            if (siteTable == null) return;
-            
-            // Get the top row
-            var row = siteTable.Rows[0];
-
-            // Set the next tag value
-            row["next_tag_id"] = tagNo;
+            var tbl_Site = DbMethods.GetDbTable(MdbPath, "site_table");
+            tbl_Site.Rows[0]["next_tag_id"] = tagNo;
                 
-            // Update the site table
-            DbMethods.UpdateDbTable(MdbPath, siteTable);
-        }
-
-        /// <summary>
-        ///     Locates the specified tag in the SmartPlant Review application main window.
-        /// </summary>
-        /// <param name="tagNo">Integer of the tag number.</param>
-        public void Tags_Goto(int tagNo)
-        {
-            Tags_Goto(tagNo, true);
+            DbMethods.UpdateDbTable(MdbPath, tbl_Site);
         }
 
         /// <summary>
@@ -1110,73 +786,47 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         /// <param name="tagNo">Integer of the tag number.</param>
         /// <param name="displayTag">Indicates if the tag will be displayed.</param>
-        public void Tags_Goto(int tagNo, bool displayTag)
+        public void Tags_Goto(int tagNo, bool displayTag = true)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Get the tag data
             var curTag = Tags_Get(tagNo);
-
-            // Exit if the tag was not retrieved
-            if (curTag == null) return;
                 
-            // Update the text window with the tag information
-            TextWindow_Update(curTag.Data["tag_text"].ToString(), string.Format("Tag {0}", tagNo));
+            // Update the text window with the tag contents
+            TextWindow_Update(curTag.Text, string.Format("Tag {0}", tagNo));
 
-            // Locate the desired tag on the main screen with the specified visibility
             int sprResult = DrApi.GotoTag(tagNo, 0, Convert.ToInt32(displayTag));
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorInvalidTag:
-                    throw SprExceptions.SprInvalidTag;
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-            }
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
         ///     Retrieves the desired tag from the Mdb tag_data table.
         /// </summary>
         /// <param name="tagNo">Integer of the tag to retrieve.</param>
-        /// <returns>SprTag containing the retirned tag information.</returns>
+        /// <returns>SprTag containing the returned tag information.</returns>
         public SprTag Tags_Get(int tagNo)
         {
-            // Throw an exception if not connected
-            //if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Create the new tag
             var returnTag = new SprTag();
+            var tbl_Tags = DbMethods.GetDbTable(MdbPath, "tag_data");
+            var tagRow = tbl_Tags.Select(string.Format("tag_unique_id = '{0}'", tagNo))[0];
+            if (tagRow == null) throw SprExceptions.SprTagNotFound;
 
-            // Retrieve the site table
-            var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
+            return SprUtilities.BuildTagFromData(tagRow);
+        }
 
-            // Return null if the table retrieval failed
-            if (tagTable == null) return null;
+        /// <summary>
+        ///     Returns a list of all SprTags currently in the MDB database.
+        /// </summary>
+        /// <returns>The SprTag collection.</returns>
+        public List<SprTag> Tags_GetAll()
+        {
+            var returnList = new List<SprTag>();
+            var tbl_Tags = DbMethods.GetDbTable(MdbPath, "tag_data").Copy();
             
-            // Return null if no tags exist
-            if (tagTable.Rows.Count == 0) return null;
+            foreach (DataRow tagRow in tbl_Tags.Rows)
+                returnList.Add(SprUtilities.BuildTagFromData(tagRow));
 
-            // Create the row filter for the desired tag
-            var rowFilter = tagTable.Select(string.Format("tag_unique_id = '{0}'", tagNo));
-            
-            // Throw an exception if the tag was not found
-            if (rowFilter.Length == 0) throw SprExceptions.SprTagNotFound;
-
-            // Iterate through each column
-            foreach (DataColumn col in tagTable.Columns)
-            {
-                // Add the key/value from the first filtered row to the dictionary
-                returnTag.Data[col.ColumnName] = rowFilter[0][col];
-            }
-
-            // Set the tag as placed
-            returnTag.IsPlaced = true;
-
-            // Return the tag
-            return returnTag;
+            return returnList;
         }
 
         /// <summary>
@@ -1195,72 +845,37 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="tag">SprTag containing the tag information.</param>
         public void Tags_Place(ref SprTag tag)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the origin point
             var tagOrigin = new SprPoint3D();
-
-            // Get an object on screen and set the origin point to its location
             var objId = GetObjectId("SELECT TAG START POINT", ref tagOrigin);
-
-            // Exit if the object selection failed
             if (objId == 0)
             {
                 TextWindow_Update("Tag placement canceled.");
                 return;
-            } 
+            }
 
-            // Get the tag leader point using the origin for depth
             var tagLeader = GetPoint("SELECT TAG LEADER LOCATION", tagOrigin);
-
-            // Exit if the leader point is not set
             if (tagLeader == null)
             {
                 TextWindow_Update("Tag placement canceled.");
                 return;
             }
 
-            // Throw an exception if either of the point retrievals failed
             if (objId == 0 || tagLeader == null) throw SprExceptions.SprNullPoint;
 
-            // Get the current object for the label key
             var currentObject = GetObjectData(objId);
             dynamic tagLabelKey = currentObject.DrObjectDataDbl.LabelKey;
 
             // Turn label tracking on on the flag bitmask
             tag.Flags |= SprConstants.SprTagLabel;
 
-            // Set the tag registry values
             SprUtilities.SetTagRegistry(tag);
-
-            // Place the tag
             int sprResult = DrApi.TagSetDbl(tag.Id, 0, tag.Flags, ref tagLeader.DrPointDbl,
                                             ref tagOrigin.DrPointDbl, tagLabelKey, tag.Text);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorOutOfMemory:
-                case SprConstants.SprErrorApiOutOfMemory:
-                    throw SprExceptions.SprOutOfMemory;
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidTag:
-                    throw SprExceptions.SprInvalidTag;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorTagExists:
-                    throw SprExceptions.SprTagExists;
-            }
-
-            // Retrieve the placed tag data
-            tag = Tags_Get(tag.Id);
-
-            // Clear the tag registry
             SprUtilities.ClearTagRegistry();
-
-            // Update the text window
             TextWindow_Update(tag.Text, string.Format("Tag {0}", tag.Id));
         }
 
@@ -1270,10 +885,7 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="tagNo">Integer of the tag to edit.</param>
         public void Tags_EditLeader(int tagNo)
         {
-            // Get the existing tag
             var tag = Tags_Get(tagNo);
-
-            // Edit the tag leader
             Tags_EditLeader(ref tag);
         }
 
@@ -1283,88 +895,49 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="tag">SprTag containing the tag information.</param>
         public void Tags_EditLeader(ref SprTag tag)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Throw an exception if the tag is not placed
             if (!tag.IsPlaced) throw SprExceptions.SprTagNotPlaced;
 
-            // Get the existing tag text
             var tagText = tag.Text;
-
-            // Create the origin point
             var tagOrigin = new SprPoint3D();
 
-            // Get an object on screen and set the origin point to its location
             var objId = GetObjectId("SELECT NEW TAG START POINT", ref tagOrigin);
-
-            // Exit if the object selection failed
             if (objId == 0)
             {
                 TextWindow_Update("Tag placement canceled.");
                 return;
             }
 
-            // Get the tag leader point
             var tagLeader = GetPoint("SELECT NEW LEADER LOCATION", tagOrigin);
-
-            // Exit if the leader point is not set
             if (tagLeader == null)
             {
                 TextWindow_Update("Tag placement canceled.");
                 return;
             }
 
-            // Throw an exception if either of the point retrievals failed
             if (objId == 0 || tagLeader == null) throw SprExceptions.SprNullPoint;
-
-            // Get the current object for the label key
             var currentObject = GetObjectData(objId);
             dynamic tagLabelKey = currentObject.DrObjectDataDbl.LabelKey;
 
-            // Turn label tracking on on the flag bitmask
+            // Bitmask set labels/edit true
             tag.Flags |= SprConstants.SprTagLabel;
-
-            // Set the edit flag on the existing tag
             tag.Flags |= SprConstants.SprTagEdit;
 
-            // Update the tag with the new leader points
             int sprResult = DrApi.TagSetDbl(tag.Id, 0, tag.Flags, tagLeader.DrPointDbl,
                                                 tagOrigin.DrPointDbl, tagLabelKey, tagText);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorOutOfMemory:
-                case SprConstants.SprErrorApiOutOfMemory:
-                    throw SprExceptions.SprOutOfMemory;
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidTag:
-                    throw SprExceptions.SprInvalidTag;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorTagExists:
-                    throw SprExceptions.SprTagExists;
-            }
-
-            // Reference the placed tag
-            tag = Tags_Get(tag.Id);
+            SprUtilities.ErrorHandler(sprResult);
 
             // Flip the tag 180 degrees.  Intergraph is AWESOME!
+            tag = Tags_Get(tag.Id);
             var newOrigin = tag.LeaderPoint;
             var newLeader = tag.OriginPoint;
             tag.LeaderPoint = newLeader;
             tag.OriginPoint = newOrigin;
-
-            // Update the tag
             Tags_Update(tag);
 
-            // Update the text window
             TextWindow_Update(tag.Text, string.Format("Tag {0}", tag.Id));
-
-            // Update the main view
-            DrApi.ViewUpdate(1);
+            sprResult = DrApi.ViewUpdate(1);
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -1374,30 +947,14 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>Indicates the success or failure of the tag_table modification.</returns>
         public bool Tags_Update(SprTag tag)
         {
-            // Throw an exception if not connected
-            //if (!IsConnected)throw SprExceptions.SprNotConnected;
-
-            // Retrieve the site table
-            var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
-
-            // Return false if the table is null
-            if (tagTable == null) return false;
-
-            // Return false if no tags exist
-            if (tagTable.Rows.Count == 0) return false;
-            
-            // Create the row filter for the specified tag
+            var tbl_Tags = DbMethods.GetDbTable(MdbPath, "tag_data");
             var rowFilter = string.Format("tag_unique_id = {0}", tag.Id);
-            var tblFilter = tagTable.Select(rowFilter);
+            var tagRow = tbl_Tags.Select(rowFilter)[0];
 
-            // Iterate through each dictionary key/value pair
             foreach (var kvp in tag.Data)
+                tagRow[kvp.Key] = kvp.Value;
             
-            // Set the values for the selected tag
-            tblFilter[0][kvp.Key] = kvp.Value;
-            
-            // Return the result of the table update
-            return DbMethods.UpdateDbTable(MdbPath, rowFilter, tagTable);
+            return DbMethods.UpdateDbTable(MdbPath, tagRow);
         }
 
         /// <summary>
@@ -1406,33 +963,9 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="stateInfo">SprTag passed as an object per WaitCallback requirements.</param>
         public void Tags_Update(object stateInfo)
         {
-            // Cast the threading object 
             var tag = stateInfo as SprTag;
-
-            // Return if the tag is null
             if (tag == null) return;
-
-            // Retrieve the site table
-            var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
-
-            // Return if the table is null
-            if (tagTable == null) return;
-
-            // Return if no tags exist
-            if (tagTable.Rows.Count == 0) return;
-
-            // Create the row filter for the specified tag
-            var rowFilter = string.Format("tag_unique_id = {0}", tag.Id);
-            var tblFilter = tagTable.Select(rowFilter);
-
-            // Iterate through each dictionary key/value pair
-            foreach (var kvp in tag.Data)
-
-                // Set the values for the selected tag
-                tblFilter[0][kvp.Key] = kvp.Value;
-
-            // Push the the updated table
-            DbMethods.UpdateDbTable(MdbPath, rowFilter, tagTable);
+            Tags_Update(tag);
         }
 
         /// <summary>
@@ -1455,11 +988,8 @@ namespace SharpPlant.SharpPlantReview
         /// <returns></returns>
         public bool Tags_SaveImageToMDB(int tagNo, SprSnapShot snap, bool ZoomToTag)
         {
-            // Zoom to the tag as needed
-            if (ZoomToTag)
-                Tags_Goto(tagNo);
-
-            string imgPath = TakeSnapshot(snap, "dbImage_temp", SprSnapShot.TempDirectory);
+            if (ZoomToTag) Tags_Goto(tagNo);
+            var imgPath = TakeSnapshot(snap, "dbImage_temp", SprSnapShot.TempDirectory);
 
             if (!DbMethods.AddDbField(MdbPath, "tag_data", "tag_image", "OLEOBJECT"))
                 return false;
@@ -1469,14 +999,13 @@ namespace SharpPlant.SharpPlantReview
                 var imgBytes = new byte[fs.Length];
                 fs.Read(imgBytes, 0, imgBytes.Length);
 
-                var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
-
+                var tbl_Tags = DbMethods.GetDbTable(MdbPath, "tag_data");
                 var rowFilter = string.Format("tag_unique_id = {0}", tagNo);
-                var tblFilter = tagTable.Select(rowFilter);
-                tblFilter[0]["tag_image"] = imgBytes;
+                var tagRow = tbl_Tags.Select(rowFilter)[0];
+                tagRow["tag_image"] = imgBytes;
 
                 // Return the result of the table update
-                if (!DbMethods.UpdateDbTable(MdbPath, rowFilter, tagTable))
+                if (!DbMethods.UpdateDbTable(MdbPath, tagRow))
                     return false;
             }
 
@@ -1487,37 +1016,20 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     Saves images in the default snapshot format for all existing tags in the Mdb.
         /// </summary>
-        /// <returns></returns>
-        public bool Tags_SaveAllImagesToMDB()
+        public void Tags_SaveAllImagesToMDB()
         {
-            return Tags_SaveAllImagesToMDB(DefaultSnapshot);
+            Tags_SaveAllImagesToMDB(DefaultSnapshot);
         }
 
         /// <summary>
         ///     Saves images for all existing tags in the Mdb.
         /// </summary>
         /// <param name="snap">The snapshot format the images will be created with.</param>
-        /// <returns></returns>
-        public bool Tags_SaveAllImagesToMDB(SprSnapShot snap)
+        public void Tags_SaveAllImagesToMDB(SprSnapShot snap)
         {
-            // Retrieve the site table
-            var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
-
-            // Return null if the table retrieval failed
-            if (tagTable == null) return false;
-
-            // Return null if no tags exist
-            if (tagTable.Rows.Count == 0) return false;
-
-            for (int i = 0; i < tagTable.Rows.Count; i++)
-            {
-                var curTag = Tags_Get(Convert.ToInt32(tagTable.Rows[i]["tag_unique_id"]));
-
-                if (!Tags_SaveImageToMDB(curTag.Id, snap, true))
-                    return false;
-            }
-
-            return true;
+            var tbl_Tags = DbMethods.GetDbTable(MdbPath, "tag_data");
+            foreach (DataRow tagRow in tbl_Tags.Rows)
+                Tags_SaveImageToMDB(Convert.ToInt32(tagRow["tag_unique_id"]), snap, true);
         }
 
         /// <summary>
@@ -1540,21 +1052,13 @@ namespace SharpPlant.SharpPlantReview
         /// <returns></returns>
         public bool Tags_TakeSnapshots(string nameFormat, string outputDir, SprSnapShot snap)
         {
-            // Retrieve the site table
-            var tagTable = DbMethods.GetDbTable(MdbPath, "tag_data");
-
-            // Set the name formatting
+            // Uses the unique_tag_id to auto-increment
             nameFormat = nameFormat.Replace("##", "{0}");
 
-            // Return null if the table retrieval failed
-            if (tagTable == null) return false;
-
-            // Return null if no tags exist
-            if (tagTable.Rows.Count == 0) return false;
-
-            for (int i = 0; i < tagTable.Rows.Count; i++)
+            var tbl_Tags = DbMethods.GetDbTable(MdbPath, "tag_data");
+            for (int i = 0; i < tbl_Tags.Rows.Count; i++)
             {
-                var curTagNo = Convert.ToInt32(tagTable.Rows[i]["tag_unique_id"]);
+                var curTagNo = Convert.ToInt32(tbl_Tags.Rows[i]["tag_unique_id"]);
                 Tags_Goto(curTagNo);
 
                 TakeSnapshot(snap, string.Format(nameFormat, curTagNo), outputDir);
@@ -1573,64 +1077,29 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="visible">Determines the annotation visibility state.</param>
         public void Annotations_Display(bool visible)
         {
-            // Throw an expection if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the params
             var visValue = Convert.ToInt32(visible);
-
-            // Create the view object
             dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
 
-            // Throw an exception if the DrViewDbl is null
             if (objViewdataDbl == null) throw SprExceptions.SprObjectCreateFail;
 
-            // Set the view object as the SPR Application main view
             int sprResult = DrApi.ViewGetDbl(0, ref objViewdataDbl);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorInvalidView:
-                    throw SprExceptions.SprInvalidView;
-            }
-
-            // Apply the updated annotation display
+            SprUtilities.ErrorHandler(sprResult);
             objViewdataDbl.AllAnnotationsDisplay = visValue;
 
             // Update the global annotation visibility properties
             sprResult = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDisplay, visValue);
-            sprResult = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoTextDisplay, visValue);
-            sprResult = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDataDisplay, visValue);
-            
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorInvalidGlobal:
-                    throw SprExceptions.SprInvalidGlobal;
-            }
-            
-            // Update the main view in SPR
-            sprResult = DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorInvalidView:
-                    throw SprExceptions.SprInvalidView;
-            }
+            sprResult = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoTextDisplay, visValue);
+            SprUtilities.ErrorHandler(sprResult);
+
+            sprResult = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDataDisplay, visValue);
+            SprUtilities.ErrorHandler(sprResult);
+                        
+            sprResult = DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -1641,10 +1110,6 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>Indicates the success or failure of the table modification.</returns>
         public bool Annotations_AddDataField(string fieldName)
         {
-            // Throw an exception if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Add the tag field to the MDB database
             return DbMethods.AddDbField(MdbPath, "text_annotations", fieldName);
         }
 
@@ -1690,33 +1155,11 @@ namespace SharpPlant.SharpPlantReview
             // Place the annotation on screen
             int annoId;
             int sprResult = DrApi.AnnotationCreateDbl(anno.Type, ref drAnno, out annoId);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorInvalidAnnoType:
-                    throw SprExceptions.SprInvalidAnnoType;
-            }
+            SprUtilities.ErrorHandler(sprResult);
 
             // Link the located object to the annotation
             sprResult = DrApi.AnnotationDataSet(annoId, anno.Type, ref drAnno, ref objId);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorInvalidAnnoType:
-                    throw SprExceptions.SprInvalidAnnoType;
-                case SprConstants.SprErrorApiOutOfMemory:
-                    throw SprExceptions.SprOutOfMemory;
-            }
+            SprUtilities.ErrorHandler(sprResult);
 
             // Retrieve the placed annotation data
             anno = Annotations_Get(anno.Id);
@@ -1734,16 +1177,17 @@ namespace SharpPlant.SharpPlantReview
             TextWindow_Update(anno.Text, string.Format("Annotation {0}", anno.Id));
 
             // Update the main view
-            DrApi.ViewUpdate(1);
+            sprResult = DrApi.ViewUpdate(1);
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         public void Annotations_EditLeader(int annoNo)
         {
-
+            // Update the placement points and reload?
         }
         public void Annotations_EditLeader(ref SprAnnotation annotation)
         {
-        
+            // Update the placement points and reload?
         }
 
         /// <summary>
@@ -1752,7 +1196,9 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="anno">SprAnnotation containing the annotation information.</param>
         public void Annotations_Add(SprAnnotation anno)
         {
-            throw new NotImplementedException();
+            // Get the tbl_Annotations
+            // create a new row with the anno values
+            // update the MDB
         }
 
         /// <summary>
@@ -1761,7 +1207,6 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="annotations">List of SprAnnotation to be added to the annotation table.</param>
         public void Annotations_Add(List<SprAnnotation> annotations)
         {
-            // Add each annotation
             foreach (var anno in annotations)
                 Annotations_Add(anno);
         }
@@ -1773,65 +1218,28 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>SprAnnotation containing the selected annotation information.</returns>
         public SprAnnotation Annotations_Select(string type)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
             
-            // Create the params
-            int annoId;
+            int selectedId;
+            int assocId;
+            var annotation = new SprAnnotation();
 
-            // Create the return annotation object
-            var anno = new SprAnnotation();
-
-            // Set the SPR application visible
             Activate();
 
-            // Prompt the user to select the annotation
-            var msg = string.Format("SELECT THE DESIRED {0} ANNOTATION", type.ToUpper());
-            int sprResult = DrApi.AnnotationLocate(type, msg, 0, out annoId);
+            var promptString = string.Format("SELECT THE DESIRED {0} ANNOTATION", type.ToUpper());
+            int sprResult = DrApi.AnnotationLocate(type, promptString, 0, out selectedId);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorInvalidAnnoType:
-                    throw SprExceptions.SprInvalidAnnoType;
-            }
-
-            // Return null if the annotation locate failed
-            if (annoId == 0) return null;
-
-            // Set the annotation ID
-            anno.Id = annoId;
-
-            // Get the associated object ID
-            int assocId;
-            var drAnno = anno.DrAnnotationDbl;
-            sprResult = DrApi.AnnotationDataGet(annoId, type, ref drAnno, out assocId);
-
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorInvalidAnnoType:
-                    throw SprExceptions.SprInvalidAnnoType;
-                case SprConstants.SprErrorApiOutOfMemory:
-                    throw SprExceptions.SprOutOfMemory;
-            }
-
-            // Return null if the associated object id is zero
+            annotation.Id = selectedId;
+            
+            var drAnno = annotation.DrAnnotationDbl;
+            sprResult = DrApi.AnnotationDataGet(selectedId, type, ref drAnno, out assocId);
+            SprUtilities.ErrorHandler(sprResult);
+            
             if (assocId == 0) return null;
+            annotation.AssociatedObject = GetObjectData(assocId);
 
-            // Set the assiciated object
-            anno.AssociatedObject = GetObjectData(assocId);
-
-            // Return the completed annotation
-            return anno;
+            return annotation;
         }
 
         /// <summary>
@@ -1840,51 +1248,22 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="type">The string type of the annotation to delete.</param>
         public void Annotations_Delete(string type)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the params
             int annoId;
 
-            // Set the SPR application visible
             Activate();
 
-            // Prompt the user to select the annotation
-            var msg = string.Format("SELECT THE {0} ANNOTATION TO DELETE", type.ToUpper());
-            int sprResult = DrApi.AnnotationLocate(type, msg, 0, out annoId);
+            var promptString = string.Format("SELECT THE {0} ANNOTATION TO DELETE", type.ToUpper());
+            int sprResult = DrApi.AnnotationLocate(type, promptString, 0, out annoId);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorInvalidAnnoType:
-                    throw SprExceptions.SprInvalidAnnoType;
-            }
-
-            // Return if the annotation locate was unsuccessful
             if (annoId == 0) return;
-
-            // Delete the selected annotation
             sprResult = DrApi.AnnotationDelete(type, annoId, 0);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorInvalidAnnoType:
-                    throw SprExceptions.SprInvalidAnnoType;
-                case SprConstants.SprErrorInvalidObjectId:
-                    throw SprExceptions.SprInvalidObjectId;
-            }
-
-            // Update the main view
-            DrApi.ViewUpdate(1);
+            sprResult = DrApi.ViewUpdate(1);
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -1893,27 +1272,13 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="type">The string type of the annotations to delete.</param>
         public void Annotations_DeleteType(string type)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Delete all annotations matching the provided type
             int sprResult = DrApi.AnnotationDeleteAll(type, 0);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidParameter:
-                    throw SprExceptions.SprInvalidParameter;
-                case SprConstants.SprErrorInvalidAnnoType:
-                    throw SprExceptions.SprInvalidAnnoType;
-                case SprConstants.SprErrorInvalidObjectId:
-                    throw SprExceptions.SprInvalidObjectId;
-            }
-
-            // Update the main view
-            DrApi.ViewUpdate(1);
+            sprResult = DrApi.ViewUpdate(1);
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -1921,27 +1286,14 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void Annotations_DeleteAll()
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Get the annotation types
-            var typeTable = DbMethods.GetDbTable(MdbPath, "text_annotation_types");
+            var tbl_TextAnnotations = DbMethods.GetDbTable(MdbPath, "text_annotation_types");
+            for (var i = tbl_TextAnnotations.Rows.Count - 1; i >= 0; i--)
+                Annotations_DeleteType(tbl_TextAnnotations.Rows[i]["name"].ToString());
 
-            // Exit if the type table is null
-            if (typeTable == null) return;
-
-            // If no types exist
-            if (typeTable.Rows.Count == 0) return;
-
-            // Iterate through each annotation type
-            for (var i = typeTable.Rows.Count - 1; i >= 0; i--)
-            {
-                // Delete all annotations matching the current type
-                Annotations_DeleteType(typeTable.Rows[i]["name"].ToString());
-            }
-
-            // Update the main view
-            DrApi.ViewUpdate(1);
+            int sprResult = DrApi.ViewUpdate(1);
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         /// <summary>
@@ -1951,39 +1303,17 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>SprAnnotation containing the retirned annotation information.</returns>
         public SprAnnotation Annotations_Get(int annoId)
         {
-            // Throw an exception if not connected
-            //if (!IsConnected) throw SprExceptions.SprNotConnected;
+            var annotation = new SprAnnotation();
+            var tbl_Annotations = DbMethods.GetDbTable(MdbPath, "text_annotations");
+            var annotationRow = tbl_Annotations.Select(string.Format("id = '{0}'", annoId))[0];
 
-            // Create the new tag
-            var anno = new SprAnnotation();
-
-            // Retrieve the site table
-            var annoTable = DbMethods.GetDbTable(MdbPath, "text_annotations");
-
-            // Return null if the table retrieval failed
-            if (annoTable == null) return null;
-
-            // Return null if no annotations exist
-            if (annoTable.Rows.Count == 0) return null;
-
-            // Create the row filter for the desired tag
-            var rowFilter = annoTable.Select(string.Format("id = '{0}'", annoId));
-
-            // Throw an exception if the tag was not found
-            if (rowFilter.Length == 0) throw SprExceptions.SprAnnotationNotFound;
-
-            // Iterate through each column
-            foreach (DataColumn col in annoTable.Columns)
+            foreach (DataColumn col in tbl_Annotations.Columns)
             {
-                // Add the key/value from the first filtered row to the dictionary
-                anno.Data[col.ColumnName] = rowFilter[0][col];
+                annotation.Data[col.ColumnName] = annotationRow[col];
             }
 
-            // Set the tag as placed
-            anno.IsPlaced = true;
-
-            // Return the tag
-            return anno;
+            annotation.IsPlaced = true;
+            return annotation;
         }
 
         /// <summary>
@@ -1993,30 +1323,14 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>Indicates the success or failure of the text_annotations modification.</returns>
         public bool Annotations_Update(SprAnnotation anno)
         {
-            // Throw an exception if not connected
-            //if (!IsConnected)throw SprExceptions.SprNotConnected;
-
-            // Retrieve the site table
-            var annoTable = DbMethods.GetDbTable(MdbPath, "text_annotations");
-
-            // Return false if the table is null
-            if (annoTable == null) return false;
-
-            // Return false if no tags exist
-            if (annoTable.Rows.Count == 0) return false;
-
-            // Create the row filter for the specified tag
+            var tbl_Annotations = DbMethods.GetDbTable(MdbPath, "text_annotations");
             var rowFilter = string.Format("id = {0}", anno.Id);
-            var tblFilter = annoTable.Select(rowFilter);
+            var annotationRow = tbl_Annotations.Select(rowFilter)[0];
 
-            // Iterate through each dictionary key/value pair
             foreach (var kvp in anno.Data)
+                annotationRow[kvp.Key] = kvp.Value;
 
-                // Set the values for the selected tag
-                tblFilter[0][kvp.Key] = kvp.Value;
-
-            // Return the result of the table update
-            return DbMethods.UpdateDbTable(MdbPath, rowFilter, annoTable);
+            return DbMethods.UpdateDbTable(MdbPath, annotationRow);
         }
 
         /// <summary>
@@ -2025,33 +1339,10 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="stateInfo">SprAnnotation passed as an object per WaitCallback requirements.</param>
         public void Annotations_Update(object stateInfo)
         {
-            // Cast the threading object 
-            var anno = stateInfo as SprAnnotation;
+            var annotation = stateInfo as SprAnnotation;
+            if (annotation == null) return;
 
-            // Return if the annotation is null
-            if (anno == null) return;
-
-            // Retrieve the annotation table
-            var annoTable = DbMethods.GetDbTable(MdbPath, "text_annotations");
-
-            // Return if the table is null
-            if (annoTable == null) return;
-
-            // Return if no annotations exist
-            if (annoTable.Rows.Count == 0) return;
-
-            // Create the row filter for the specified tag
-            var rowFilter = string.Format("id = {0}", anno.Id);
-            var tblFilter = annoTable.Select(rowFilter);
-
-            // Iterate through each dictionary key/value pair
-            foreach (var kvp in anno.Data)
-
-                // Set the values for the selected annotation
-                tblFilter[0][kvp.Key] = kvp.Value;
-
-            // Push the the updated table
-            DbMethods.UpdateDbTable(MdbPath, rowFilter, annoTable);
+            Annotations_Update(annotation);
         }
 
         #endregion
@@ -2072,61 +1363,38 @@ namespace SharpPlant.SharpPlantReview
         /// <returns></returns>
         public string TakeSnapshot(SprSnapShot snapShot, string imageName, string outputDir)
         {
-            // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
             
-            // Build the output image path (.BMP is forced before conversions)
+            // .BMP is forced before conversions
             var imgPath = Path.Combine(outputDir, string.Format("{0}.bmp", imageName));
 
-            // Get the current backface/endcap settings
+            // Turn on view backfaces/endcaps
             var orgBackfaces = GlobalOptionsGet(SprConstants.SprGlobalBackfacesDisplay);
             var orgEndcaps = GlobalOptionsGet(SprConstants.SprGlobalEndcapsDisplay);
-
-            // Turn on view backfaces/endcaps as needed
             if (orgBackfaces == 0)
             GlobalOptionsSet(SprConstants.SprGlobalBackfacesDisplay, 1);
             if (orgEndcaps == 0)
             GlobalOptionsSet(SprConstants.SprGlobalEndcapsDisplay, 1);
 
-            // Take the snapshot
             int sprResult = DrApi.SnapShot(imgPath, snapShot.Flags, snapShot.DrSnapShot, 0);
-
-            // Wait until SmartPlant Review is finished processing
             while (IsBusy) Thread.Sleep(100);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Handle the errors
-            switch (sprResult)
-            {
-                case SprConstants.SprErrorNoApi:
-                    throw SprExceptions.SprNotConnected;
-                case SprConstants.SprErrorInvalidFileName:
-                    throw SprExceptions.SprInvalidFileName;
-                case SprConstants.SprErrorDirectoryWriteFailure:
-                    throw SprExceptions.SprDirectoryWriteFailure;
-                case SprConstants.SprErrorFileWriteFailure:
-                    throw SprExceptions.SprFileWriteFailure;
-                case SprConstants.SprErrorFileExists:
-                    throw SprExceptions.SprFileExists;
-            }
-
-            // Reset the original settings if applicable
             if (orgBackfaces == 0) GlobalOptionsSet(SprConstants.SprGlobalBackfacesDisplay, 1);
             if (orgEndcaps == 0) GlobalOptionsSet(SprConstants.SprGlobalEndcapsDisplay, 1);
 
-            // Return false if the snapshot doesn't exist
-            if (!File.Exists(imgPath)) return null;
+            if (!File.Exists(imgPath)) return string.Empty;
 
-            // Format the snapshot if required
             if (snapShot.OutputFormat != SprSnapshotFormat.Bmp)
                 imgPath = SprSnapShot.FormatSnapshot(imgPath, snapShot.OutputFormat);
 
             return imgPath;
-
         }
       
         public bool ExportPDF(int quality, string path)
         {
-            DrApi.ExportPDF(path, quality, 1, 1, 1);
+            int sprResult = DrApi.ExportPDF(path, quality, 1, 1, 1);
+            SprUtilities.ErrorHandler(sprResult);
 
             return true;
         }
@@ -2142,20 +1410,17 @@ namespace SharpPlant.SharpPlantReview
 
         public void SetCenterPoint(SprPoint3D centerPoint)
         {
-            if (!IsConnected)
-                throw SprExceptions.SprNotConnected;
+            if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the DrViewDbl
             dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
 
-            // Set the view object as the SPR Application main view
-            DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            int sprResult = DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Apply the updated centerpoint
             objViewdataDbl.CenterUorPoint = centerPoint.DrPointDbl;
 
-            // Update the main view in SPR
-            DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            sprResult = DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         public void SetEyePoint(double east, double north, double elevation)
@@ -2168,20 +1433,17 @@ namespace SharpPlant.SharpPlantReview
             if (!IsConnected)
                 throw SprExceptions.SprNotConnected;
 
-            // Create the DrViewDbl
             dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
+            int sprResult = DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Set the view object as the SPR Application main view
-            DrApi.ViewGetDbl(0, ref objViewdataDbl);
-
-            // Apply the updated eyepoint
             objViewdataDbl.EyeUorPoint = eyePoint.DrPointDbl;
 
-            // Update the main view in SPR
-            DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            sprResult = DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            SprUtilities.ErrorHandler(sprResult);
         }
 
-        //public void GotoLocation
+        //public void GotoPoint
 
         #endregion
 
@@ -2194,44 +1456,27 @@ namespace SharpPlant.SharpPlantReview
         /// <returns>The SprWindow containing the window properties.</returns>
         public SprWindow Window_Get(int windowNo)
         {
-            if (!IsConnected)
-                throw SprExceptions.SprNotConnected;
+            if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the params
             int drHwnd;
-
-            // Create the SPRWindow
             var curWin = new SprWindow();
-
-            // Create the DrWindow
             dynamic objWin = Activator.CreateInstance(SprImportedTypes.DrWindow);
-            DrApi.WindowGet(windowNo, out objWin);
 
-            // Get the window handle
-            DrApi.WindowHandleGet(windowNo, out drHwnd);
+            int sprResult = DrApi.WindowGet(windowNo, out objWin);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Set the window values
-            if (objWin != null)
-            {
-                // Set the size
-                curWin.Height = objWin.Height;
-                curWin.Width = objWin.Width;
+            sprResult = DrApi.WindowHandleGet(windowNo, out drHwnd);
+            SprUtilities.ErrorHandler(sprResult);
 
-                // Set the position (0 if negative)
-                curWin.Left = objWin.Left < 0 ? 0 : objWin.Left;
-                curWin.Top = objWin.Top < 0 ? 0 : objWin.Top;
+            if (objWin == null) return null;
 
-                // Set the handle
-                curWin.WindowHandle = drHwnd;
-
-                // Set the index
-                curWin.Index = windowNo;
-
-                // Return the window
-                return curWin;
-            }
-
-            return null;
+            curWin.Height = objWin.Height;
+            curWin.Width = objWin.Width;
+            curWin.Left = objWin.Left < 0 ? 0 : objWin.Left; // 0 if
+            curWin.Top = objWin.Top < 0 ? 0 : objWin.Top;    // negative
+            curWin.WindowHandle = drHwnd;
+            curWin.Index = windowNo;
+            return curWin;
         }
 
         /// <summary>
@@ -2240,26 +1485,21 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="window">The SprWindow containing the new properties.</param>
         public void Window_Set(SprWindow window)
         {
-            if (!IsConnected)
-                throw SprExceptions.SprNotConnected;
+            if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the DrWindow
             dynamic objWin = Activator.CreateInstance(SprImportedTypes.DrWindow);
-            DrApi.WindowGet(window.Index, out objWin);
+            int sprResult = DrApi.WindowGet(window.Index, out objWin);
+            SprUtilities.ErrorHandler(sprResult);
 
-            // Return if the DrWindow is null
             if (objWin == null) return;
 
-            // Set the new size
             objWin.Height = window.Height;
             objWin.Width = window.Width;
-
-            // Set the new position
             if (window.Left > 0) objWin.Left = window.Left;
             if (window.Top > 0) objWin.Top = window.Top;
 
-            // Apply the updates
-            DrApi.WindowSet(window.Index, objWin);
+            sprResult = DrApi.WindowSet(window.Index, objWin);
+            SprUtilities.ErrorHandler(sprResult);
         }
 
         #endregion

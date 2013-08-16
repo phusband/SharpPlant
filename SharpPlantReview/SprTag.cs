@@ -188,7 +188,14 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     Determines if the tag has been placed in SmartPlant Review.
         /// </summary>
-        public bool IsPlaced { get; internal set; }
+        public bool IsPlaced
+        { 
+            get
+            {
+                // 42 is the default field count in the tag_data table
+                return Data.Count >= 42;
+            }
+        }
 
         /// <summary>
         ///     Determines if the tag has an image stored in the MDB.
@@ -257,6 +264,24 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
+        ///     The object the tag is attached to, if any.
+        /// </summary>
+        //public SprObjectData AssociatedObject
+        //{ 
+        //    get
+        //    {
+        //        try { return Application.GetObjectData(Convert.ToInt32(Data["object_id"])); }
+        //        catch (KeyNotFoundException){ return null; }
+        //        catch (InvalidCastException) { return null; } 
+        //    }
+        //    internal set
+        //    {
+        //        try { Data["object_id"] = value.ObjectId; }
+        //        catch (KeyNotFoundException) { } 
+        //    }
+        //}
+
+        /// <summary>
         ///     The full information profile of the current tag.  Controls all the tag properties.
         /// </summary>
         public Dictionary<string, object> Data { get; set; }
@@ -269,11 +294,8 @@ namespace SharpPlant.SharpPlantReview
             // Link the parent application
             Application = SprApplication.ActiveApplication;
 
-            // Set as not placed by default
-            IsPlaced = false;
-
             // Create a new data dictionary from the template
-            Data = SprUtilities.TagTemplate;
+            Data = SprUtilities.GetTagTemplate();
 
             // Set the tag to the next available tag number
             Id = Application.NextTag;
@@ -394,10 +416,10 @@ namespace SharpPlant.SharpPlantReview
                 command.CommandText = string.Format("SELECT file_name FROM linkage WHERE DMRSLinkage = '{0}'", linkID);
                 
                 // Get the model number
-                string modelNumber = null;
+                object modelNumber = null;
                 try
                 {
-                    modelNumber = command.ExecuteScalar().ToString();
+                    modelNumber = command.ExecuteScalar();
                 }
                 catch (System.Data.OleDb.OleDbException)
                 {
@@ -406,7 +428,7 @@ namespace SharpPlant.SharpPlantReview
                 // Return the model number
                 if (modelNumber == null)
                     return "Model Not Found";
-                return modelNumber;
+                return modelNumber.ToString();
             }
         }
     }

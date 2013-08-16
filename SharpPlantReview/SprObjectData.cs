@@ -157,13 +157,8 @@ namespace SharpPlant.SharpPlantReview
         // DataObject initializer
         internal SprObjectData()
         {
-            // Link the parent application
             Application = SprApplication.ActiveApplication;
-
-            // Get a new DrObjectDataDbl object
             DrObjectDataDbl = Activator.CreateInstance(SprImportedTypes.DrObjectDataDbl);
-
-            // Create the label dictionary
             LabelData = new Dictionary<string, string>();
         }
     }

@@ -198,17 +198,10 @@ namespace SharpPlant.SharpPlantReview
         // SnapShot initializer
         public SprSnapShot()
         {
-            // Link the parent application
             Application = SprApplication.ActiveApplication;
-
-            // Get a new DrSnapShot object
             DrSnapShot = Activator.CreateInstance(SprImportedTypes.DrSnapShot);
-
-            // Set the default settings flags
-            Flags |= SprConstants.SprSnapOverwrite | SprConstants.SprSnapForceBmp;
-
-            // Set the Antialias default
-            AntiAlias = 2;
+            Flags = Application.DefaultSnapshot.Flags;
+            AntiAlias = Application.DefaultSnapshot.AntiAlias;
 
             // Set the default size based on the main window 
             if (Application.IsConnected) Height = Application.MainWindow.Height;

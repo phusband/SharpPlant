@@ -55,24 +55,20 @@ namespace SharpPlant.SharpPlantReview
         // Point3D constructors
         public SprPoint3D()
         {
-            // Create the DrPointDbl
             DrPointDbl = System.Activator.CreateInstance(SprImportedTypes.DrPointDbl);
             if (DrPointDbl == null) throw SprExceptions.SprObjectCreateFail;
         }
 
         internal SprPoint3D(dynamic drPointDbl)
         {
-            // Set the DrPointDbl and coordinates
             DrPointDbl = drPointDbl;
         }
 
         public SprPoint3D(double east, double north, double elevation)
         {
-            // Create the DrPointDbl
             DrPointDbl = System.Activator.CreateInstance(SprImportedTypes.DrPointDbl);
             if (DrPointDbl == null) throw SprExceptions.SprObjectCreateFail;
 
-            // Set the coordinates
             East = east;
             North = north;
             Elevation = elevation;

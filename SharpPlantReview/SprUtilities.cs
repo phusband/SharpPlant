@@ -12,10 +12,16 @@ namespace SharpPlant.SharpPlantReview
 {
     public static class SprUtilities
     {
-        public static Dictionary<string, object> TagTemplate = new Dictionary<string, object>
+        public static Dictionary<string, object> GetTagTemplate()
+        {
+            return new Dictionary<string, object>()
             {
                 {"tag_unique_id", 0},
                 {"tag_size", 0},
+                {"linkage_id_0", 0},
+                {"linkage_id_1", 0},
+                {"linkage_id_2", 0},
+                {"linkage_id_3", 0},
                 {"tag_text", string.Empty},
                 {"number_color", 0},
                 {"backgnd_color", 0},
@@ -25,9 +31,10 @@ namespace SharpPlant.SharpPlantReview
                 {"computer_name", string.Empty},
                 {"status", string.Empty}
             };
-
-
-        public static Dictionary<string, object> AnnotationTemplate = new Dictionary<string, object>()
+        }
+        public static Dictionary<string, object> GetAnnotationTemplate()
+        {
+            return new Dictionary<string, object>()
             {
                 {"id", 0},
                 {"type_id", 0},
@@ -36,6 +43,7 @@ namespace SharpPlant.SharpPlantReview
                 {"text_color", 0},
                 {"text_string", string.Empty},
             };
+        }
 
         /// <summary>
         ///     Returns a 24-bit color integer.
@@ -55,10 +63,8 @@ namespace SharpPlant.SharpPlantReview
         /// <returns></returns>
         public static Color From0Bgr(int bgrColor)
         {
-            // Get the color bytes
-            var bytes = BitConverter.GetBytes(bgrColor);
-
             // Return the color from the byte array
+            var bytes = BitConverter.GetBytes(bgrColor);
             return Color.FromArgb(bytes[0], bytes[1], bytes[2]);
         }
 
@@ -80,7 +86,6 @@ namespace SharpPlant.SharpPlantReview
                 new Tuple<string, object, RegistryValueKind>("TextColor", Get0Bgr(tag.TextColor), RegistryValueKind.DWord)
             };
 
-            // Open the SmartPlant Review tag registry
             const string regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags\";
             using (var regKey = Registry.CurrentUser.OpenSubKey(regPath, true))
             {
@@ -91,13 +96,9 @@ namespace SharpPlant.SharpPlantReview
                     return;
                 }
                     
-                // Iterate through the attributes
                 foreach (var att in tagAtts)
                 {
-                    // Get the subkey name (prefixed with "Default" per Spr formatting)
                     var valString = string.Format("Default{0}", att.Item1);
-
-                    // Set the subkey values from the current tuple
                     regKey.SetValue(valString, att.Item2, att.Item3);
                 }
             }
@@ -108,20 +109,60 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public static void ClearTagRegistry()
         {
-            // Open the SmartPlant Review tag registry
             const string regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags";
             using (var regKey = Registry.CurrentUser.OpenSubKey(regPath, true))
             {
-                // Get the list of values
                 var values = regKey.GetValueNames();
-
-                // Iterate through the values
                 foreach (var t in values)
-                {
-                    // Delete the current value
                     regKey.DeleteValue(t);
-                }
             }
+        }
+
+        /// <summary>
+        ///     Serializes a DataRow into a new SprTag.
+        /// </summary>
+        /// <param name="row">The DataRow containing the tag values.</param>
+        /// <returns>SprTag</returns>
+        public static SprTag BuildTagFromData(System.Data.DataRow row)
+        {
+            var returnTag = new SprTag();
+            for (int i = 0; i < row.Table.Columns.Count; i++)
+            {
+                var key = row.Table.Columns[i].ColumnName;
+                returnTag.Data[key] = row.ItemArray[i];
+            }
+
+            return returnTag;
+        }
+
+        /// <summary>
+        ///     Serializes a SprAnnotation from a qualified DataRow
+        /// </summary>
+        /// <param name="row">The DataRow containing the annotation values.</param>
+        /// <returns>SprAnnotation</returns>
+        public static SprAnnotation BuildAnnotationFromData(System.Data.DataRow row)
+        {
+            var returnAnnotation = new SprAnnotation();
+            for (int i = 0; i < row.Table.Columns.Count; i++)
+			{
+                var key = row.Table.Columns[i].ColumnName;
+                returnAnnotation.Data[key] = row.ItemArray[i];
+			}
+
+            return returnAnnotation;
+        }
+
+        /// <summary>
+        ///     Handles errors passed through the active DrAPi application object.
+        /// </summary>
+        /// <param name="errorCode">The error code returned from a DrApi method</param>
+        public static void ErrorHandler(int errorCode)
+        {
+            if (errorCode == 0) return;
+            var errorString = string.Empty;
+            SprApplication.ActiveApplication.DrApi.ErrorFunctionString(errorCode, errorString);
+            if (errorString != string.Empty)
+                throw new Exception(errorString);
         }
     }
 }
