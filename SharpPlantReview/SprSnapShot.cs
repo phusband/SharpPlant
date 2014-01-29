@@ -198,8 +198,13 @@ namespace SharpPlant.SharpPlantReview
         // SnapShot initializer
         public SprSnapShot()
         {
+            // Link the parent application
             Application = SprApplication.ActiveApplication;
+
+            // Get a new DrSnapShot object
             DrSnapShot = Activator.CreateInstance(SprImportedTypes.DrSnapShot);
+			
+			// Set the default snapshot values
             Flags = Application.DefaultSnapshot.Flags;
             AntiAlias = Application.DefaultSnapshot.AntiAlias;
 
@@ -226,10 +231,8 @@ namespace SharpPlant.SharpPlantReview
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 g.SmoothingMode = SmoothingMode.HighQuality;
 
-                // Try to draw the image
-                try { g.DrawImage(curImage, 0, 0, result.Width, result.Height); }
-                catch (OutOfMemoryException) { throw SprExceptions.SprOutOfMemory; }
-
+                // Draw the image
+                g.DrawImage(curImage, 0, 0, result.Width, result.Height);
             }
 
             switch (format)

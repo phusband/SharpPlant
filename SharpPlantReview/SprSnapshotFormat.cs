@@ -10,8 +10,19 @@ namespace SharpPlant.SharpPlantReview
     /// </summary>
     public enum SprSnapshotFormat
     {
+        /// <summary>
+        ///     .bmp bitmap image format.
+        /// </summary>
         Bmp = 0,
+
+        /// <summary>
+        ///     .jpg JPEG image format.
+        /// </summary>
         Jpg = 1,
+
+        /// <summary>
+        ///     .png Raster image format.
+        /// </summary>
         Png = 2,
     }
 }

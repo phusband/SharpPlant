@@ -9,6 +9,7 @@ using System.Data.OleDb;
 using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Collections.Generic;
 
 // OleDB Database methods
 
@@ -16,33 +17,38 @@ namespace SharpPlant
 {
     public static class DbMethods
     {
-
-        public static DataTable GetDbTable(string dbPath, string tableName, string[] fields = null)
+        public static DataTable GetDbTable(string dbPath, string tableName)
         {
-            if (fields == null) fields = new string[] { "*" };
+            // Create the return table
+            DataTable returnTable;
 
-            var tbl_Return = new DataTable(tableName);
-            using (var connection = GetConnection(dbPath))
+            // Create the connection
+            using (var connection = GetConnection(dbPath, ConnectionType.Ace))
             {
-                try
-                {
-                    connection.Open();
-                    var selectCommand = GetSelectCommand(connection, tableName, fields);
-                    selectCommand.CommandType = CommandType.TableDirect;
+                // Open the connection
+                CheckOpenConnection(connection);
 
-                    var adapter = new OleDbDataAdapter(selectCommand);
-                    adapter.FillSchema(tbl_Return, SchemaType.Mapped);
-                    adapter.Fill(tbl_Return);
-                }
-                catch (Exception)
-                {
-                    
-                    throw;
-                }
+                // Get the table schema
+                returnTable = new DataTable(tableName);
+
+                // Build the select command
+                var selectCommand = GetSelectCommand(tableName, connection);
+                selectCommand.CommandType = CommandType.TableDirect;
+
+                // Create the data adapter
+                var adapter = new OleDbDataAdapter(selectCommand);
+
+                // Get the table schema
+                adapter.FillSchema(returnTable, SchemaType.Mapped);
+
+                // Fill the return table
+                adapter.Fill(returnTable);
             }
 
-            return new DataTable();
+            // Return the table
+            return returnTable;
         }
+
         public static Image GetDbImage(object imageField)
         {
             // Check for DbNull
@@ -95,46 +101,10 @@ namespace SharpPlant
             {
                 imgStream.Write(buffer, iPos, buffer.Length - iPos);
                 return Image.FromStream(imgStream);
+                //return stream.ToArray();
             }
         }
 
-        public static bool UpdateDbTable(string dbPath, DataRow inputRow)
-        {
-            return UpdateDbTable(dbPath, new DataRow[] { inputRow });
-        }
-        public static bool UpdateDbTable(string dbPath, DataRow[] inputRows)
-        {
-            // Create the connection
-            using (var connection = GetConnection(dbPath))
-            {
-                try
-                {
-                    // Open the connection
-                    connection.Open();
-
-                    // Create the adapter
-                    var tableName = inputRows[0].Table.TableName;
-                    var dataAdapter = new OleDbDataAdapter(string.Format("SELECT * FROM {0}", tableName), connection);
-
-                    // Create the update command
-                    var commandBuilder = new OleDbCommandBuilder(dataAdapter);
-                    commandBuilder.SetAllValues = false;
-                    dataAdapter.UpdateCommand = commandBuilder.GetUpdateCommand(true);
-
-                    // Update the database
-                    dataAdapter.Update(inputRows);
-
-                } // Return false on error
-                catch (OleDbException)
-                {
-                    //throw ex;
-                    return false;
-                }
-            }
-
-            // Return true on success
-            return true;
-        }
         public static bool UpdateDbTable(string dbPath, DataTable inputTable)
         {
             // Create the connection
@@ -143,16 +113,52 @@ namespace SharpPlant
                 try
                 {
                     // Open the connection
-                    connection.Open();
+                    CheckOpenConnection(connection);
 
                     // Create the adapter
                     var dataAdapter = new OleDbDataAdapter(string.Format("SELECT * FROM {0}", inputTable.TableName), connection);
 
-                    // Create the update command
-                    dataAdapter.UpdateCommand = new OleDbCommandBuilder(dataAdapter).GetUpdateCommand(true);
+                    foreach (DataRow row in inputTable.Rows)
+                    {
+                        if (row.RowState == DataRowState.Unchanged)
+                            continue;
 
-                    // Update the database
-                    dataAdapter.Update(inputTable);
+                        // Create the update command
+                        var command = new OleDbCommandBuilder(dataAdapter).GetUpdateCommand(true);
+
+                        // Update the database
+                        dataAdapter.Update(new DataRow[] { row });                       
+                    }
+
+                } // Return false on error
+                catch (OleDbException ex)
+                {
+                    //throw ex;
+                    return false;
+                }
+            }
+
+            // Return true on success
+            return true;
+        }
+        public static bool UpdateDbTable(string dbPath, string rowFilter, DataTable inputTable)
+        {
+            // Create the connection
+            using (var connection = GetConnection(dbPath))
+            {
+                try
+                {
+                    // Open the connection
+                    CheckOpenConnection(connection);
+
+                    // Create the update command
+                    var updateCommand = GetUpdateCommand(inputTable, rowFilter, connection);
+
+                    // Link the new data adapter
+                    var adapter = new OleDbDataAdapter { UpdateCommand = updateCommand };
+
+                    // Update the MDB table
+                    adapter.Update(inputTable);
 
                 } // Return false on error
                 catch (OleDbException)
@@ -165,7 +171,12 @@ namespace SharpPlant
             // Return true on success
             return true;
         }
-        public static bool AddDbField(string dbPath, string tableName, string fieldName, string fieldType = "TEXT(255)")
+
+        public static bool AddDbField(string dbPath, string tableName, string fieldName)
+        {
+            return AddDbField(dbPath, tableName, fieldName, "TEXT(255)");
+        }
+        public static bool AddDbField(string dbPath, string tableName, string fieldName, string fieldType)
         {
             // Create the connection
             using (var connection = GetConnection(dbPath))
@@ -173,10 +184,10 @@ namespace SharpPlant
                 try
                 {
                     // Open the connection
-                    connection.Open();
+                    CheckOpenConnection(connection);
 
                     // Create the update command
-                    var updateCommand = GetAddFieldCommand(connection, tableName, fieldName, fieldType);
+                    var updateCommand = GetAddFieldCommand(tableName, fieldName, fieldType, connection);
 
                     // Update the database table 
                     updateCommand.ExecuteNonQuery();
@@ -194,49 +205,202 @@ namespace SharpPlant
             return true;
         }
 
-        private static OleDbConnection GetConnection(string dbPath, OleDbDriver type = OleDbDriver.Ace)
+        internal static void CheckOpenConnection(OleDbConnection connection)
         {
+            try
+            {
+                connection.Open();
+            }
+            catch (InvalidOperationException)
+            {
+                try
+                {
+                    if (connection.Provider == "Microsoft.Ace.OLEDB.12.0")
+                        connection = GetConnection(connection.DataSource, ConnectionType.Jet);
+                    else if (connection.Provider == "Microsoft.Jet.OLEDB.4.0")
+                        connection = GetConnection(connection.DataSource, ConnectionType.Ace);
+
+                    connection.Open();
+                }
+                catch (InvalidOperationException)
+                {
+                    throw new Exception("Connection could not be established.  OleDB Ace/Jet drivers not installed.");
+                }
+            }
+        }
+
+        internal static OleDbConnection GetConnection(string dbPath)
+        {
+            return GetConnection(dbPath, ConnectionType.Ace);
+        }
+        internal static OleDbConnection GetConnection(string dbPath, ConnectionType type)
+        {
+            // Build the connection string
             string connectionString;
-
-            if (type == OleDbDriver.Ace)
+            if (type == ConnectionType.Ace)
                 connectionString = string.Format("Provider=Microsoft.Ace.OLEDB.12.0;Data Source ={0};", dbPath);
-            else
+            else if (type == ConnectionType.Jet)
                 connectionString = string.Format("Provider=Microsoft.Jet.OLEDB.4.0;Data Source ={0};", dbPath);
+            else
+                return null;
 
+            // Return the connection
             return new OleDbConnection(connectionString);
         }
-        private static OleDbCommand GetSelectCommand(OleDbConnection connection, string tableName, string[] fields)
+
+        private static OleDbCommand GetSelectCommand(string tableName, OleDbConnection connection)
         {
+            // Create the return command
             var retCommand = connection.CreateCommand();
-            var sb = new StringBuilder("SELECT ");
 
-            for (int i = 0; i < fields.Length; i++)
-                sb.AppendFormat("{0}, ", fields[i]);
+            // Build the command string
+            retCommand.CommandText = string.Format("SELECT * FROM {0}", tableName);
 
-            sb.Remove(sb.ToString().LastIndexOf(','), 1);
-            sb.AppendFormat("FROM {0}", tableName);
-
-            retCommand.CommandText = sb.ToString();
+            // Return the command
             return retCommand;
         }
-        private static OleDbCommand GetAddFieldCommand(OleDbConnection connection, string tableName, string fieldName, string fieldType)
+
+        private static OleDbCommand GetUpdateCommand(DataTable inputTable, string rowFilter, OleDbConnection connection)
         {
+            // Create the return command
             var retCommand = connection.CreateCommand();
+
+            // Build the command string
+            var sb = new StringBuilder(string.Format("UPDATE {0} SET ", inputTable.TableName));
+
+            foreach (DataColumn col in inputTable.Columns)
+            {
+                // Append the command text
+                sb.AppendFormat("{0} = ?, ", col.ColumnName);
+
+                // Create the column parameter
+                var par = new OleDbParameter
+                {
+                    ParameterName = "@" + col.ColumnName,
+                    OleDbType = GetOleDbType(col.DataType),
+                    Size = col.MaxLength,
+                    SourceColumn = col.ColumnName,
+                };
+
+                // Add the parameter to the return command
+                retCommand.Parameters.Add(par);
+            }
+
+            // Remove the last comma
+            sb.Remove(sb.ToString().LastIndexOf(','), 1);
+
+            // Add a where clause if a rowfilter was provided
+            if (rowFilter != string.Empty)
+                sb.AppendFormat("WHERE {0}", rowFilter);
+
+            // Set the command text
+            retCommand.CommandText = sb.ToString();
+
+            // Return the command
+            return retCommand;
+        }
+        private static OleDbCommand GetUpdateCommand(DataRow row, OleDbConnection connection)
+        {
+            // Create the return command
+            var retCommand = connection.CreateCommand();
+
+            // Get the parent table
+            var parentTable = row.Table;
+
+            // Get the primary Key
+            var pKey = parentTable.PrimaryKey[0];
+
+            // Build the command string
+            var sb = new StringBuilder(string.Format("UPDATE {0} SET ", parentTable.TableName));
+
+            foreach (DataColumn col in parentTable.Columns)
+            {
+                if (!col.Unique)
+                {
+                    // Append the command text
+                    sb.AppendFormat("{0} = ?, ", col.ColumnName);
+
+                    // Create the column parameter
+                    var par = new OleDbParameter
+                    {
+                        ParameterName = col.ColumnName,
+                        OleDbType = GetOleDbType(col.DataType),
+                        Size = col.MaxLength,
+                        SourceColumn = col.ColumnName,
+                    };
+
+                    // Add the parameter to the return command
+                    retCommand.Parameters.Add(par);
+                }
+            }
+
+            // Remove the last comma
+            sb.Remove(sb.ToString().LastIndexOf(','), 1);
+
+            // Add a where clause to the primary key
+            sb.AppendFormat("WHERE {0} = {1}", pKey.ColumnName, row[pKey.ColumnName]);
+
+            // Set the command text
+            retCommand.CommandText = sb.ToString();
+
+            // Return the command
+            return retCommand;
+        }
+
+        private static OleDbCommand GetAddFieldCommand(string tableName, string fieldName, string fieldType, OleDbConnection connection)
+        {
+            // Create the return command
+            var retCommand = connection.CreateCommand();
+
+            // Build the command string
             var sb = new StringBuilder(string.Format("ALTER TABLE {0} ADD COLUMN ", tableName));
 
             // Replace any spaces from the field name
             fieldName = fieldName.Replace(' ', '_');
 
+            // Append the column details
             sb.AppendFormat("{0} {1}, ", fieldName, fieldType);
+
+            // Remove the last comma
             sb.Remove(sb.ToString().LastIndexOf(','), 1);
 
+            // Set the command text
             retCommand.CommandText = sb.ToString();
+
+            // Return the command
             return retCommand;
         }
-        public enum OleDbDriver
+
+        private static OleDbType GetOleDbType(Type inputType)
         {
-            Ace,
-            Jet
+            switch (inputType.FullName)
+            {
+                // Return the appropriate type
+                case "System.Boolean":
+                    return OleDbType.Boolean;
+                case "System.Int32":
+                    return OleDbType.Integer;
+                case "System.Single":
+                    return OleDbType.Single;
+                case "System.Double":
+                    return OleDbType.Double;
+                case "System.Decimal":
+                    return OleDbType.Decimal;
+                case "System.String":
+                    return OleDbType.Char;
+                case "System.Char":
+                    return OleDbType.Char;
+                case "System.Byte[]":
+                    return OleDbType.Binary;
+                default:
+                    return OleDbType.Variant;
+            }
+        }
+
+        public enum ConnectionType
+        {
+            Ace = 1,
+            Jet = 2
         }
     }
-}
+}//

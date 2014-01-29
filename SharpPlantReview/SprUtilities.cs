@@ -12,7 +12,11 @@ namespace SharpPlant.SharpPlantReview
 {
     public static class SprUtilities
     {
-        public static Dictionary<string, object> GetTagTemplate()
+        /// <summary>
+        ///     Data template for creating a new SprTag object.
+        /// </summary>
+        /// <returns></returns>
+        public static Dictionary<string, object> TagTemplate()
         {
             return new Dictionary<string, object>()
             {
@@ -32,7 +36,12 @@ namespace SharpPlant.SharpPlantReview
                 {"status", string.Empty}
             };
         }
-        public static Dictionary<string, object> GetAnnotationTemplate()
+
+        /// <summary>
+        ///     Data template for creatring a new SprAnnotation object.
+        /// </summary>
+        /// <returns></returns>
+        public static Dictionary<string, object> AnnotationTemplate()
         {
             return new Dictionary<string, object>()
             {
@@ -63,8 +72,10 @@ namespace SharpPlant.SharpPlantReview
         /// <returns></returns>
         public static Color From0Bgr(int bgrColor)
         {
-            // Return the color from the byte array
+            // Get the color bytes
             var bytes = BitConverter.GetBytes(bgrColor);
+
+            // Return the color from the byte array
             return Color.FromArgb(bytes[0], bytes[1], bytes[2]);
         }
 
@@ -74,18 +85,7 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="tag">The tag used to determine settings values.</param>
         public static void SetTagRegistry(SprTag tag)
         {
-            // Create a three-variable list containing the subkey name, value and type.
-            var tagAtts = new List<Tuple<string, object, RegistryValueKind>>
-            {
-                new Tuple<string, object, RegistryValueKind>("BackgndColor", Get0Bgr(tag.BackgroundColor), RegistryValueKind.DWord),
-                new Tuple<string, object, RegistryValueKind>("ComputerName", tag.ComputerName, RegistryValueKind.String),
-                new Tuple<string, object, RegistryValueKind>("Creator", tag.Creator, RegistryValueKind.String),
-                new Tuple<string, object, RegistryValueKind>("Discipline", tag.Discipline, RegistryValueKind.String),
-                new Tuple<string, object, RegistryValueKind>("LeaderColor", Get0Bgr(tag.LeaderColor), RegistryValueKind.DWord),
-                new Tuple<string, object, RegistryValueKind>("Status", tag.Status, RegistryValueKind.String),
-                new Tuple<string, object, RegistryValueKind>("TextColor", Get0Bgr(tag.TextColor), RegistryValueKind.DWord)
-            };
-
+            // Open the SmartPlant Review tag registry
             const string regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags\";
             using (var regKey = Registry.CurrentUser.OpenSubKey(regPath, true))
             {
@@ -95,10 +95,26 @@ namespace SharpPlant.SharpPlantReview
                     SetTagRegistry(tag);
                     return;
                 }
-                    
+
+                // Create a three-variable list containing the subkey name, value and type.
+                var tagAtts = new List<Tuple<string, object, RegistryValueKind>>
+                {
+                    new Tuple<string, object, RegistryValueKind>("BackgndColor", Get0Bgr(tag.BackgroundColor), RegistryValueKind.DWord),
+                    new Tuple<string, object, RegistryValueKind>("ComputerName", tag.ComputerName, RegistryValueKind.String),
+                    new Tuple<string, object, RegistryValueKind>("Creator", tag.Creator, RegistryValueKind.String),
+                    new Tuple<string, object, RegistryValueKind>("Discipline", tag.Discipline, RegistryValueKind.String),
+                    new Tuple<string, object, RegistryValueKind>("LeaderColor", Get0Bgr(tag.LeaderColor), RegistryValueKind.DWord),
+                    new Tuple<string, object, RegistryValueKind>("Status", tag.Status, RegistryValueKind.String),
+                    new Tuple<string, object, RegistryValueKind>("TextColor", Get0Bgr(tag.TextColor), RegistryValueKind.DWord)
+                };
+
+                // Iterate through the attributes
                 foreach (var att in tagAtts)
                 {
+                    // Get the subkey name (prefixed with "Default" per Spr formatting)
                     var valString = string.Format("Default{0}", att.Item1);
+
+                    // Set the subkey values from the current tuple
                     regKey.SetValue(valString, att.Item2, att.Item3);
                 }
             }
@@ -109,12 +125,19 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public static void ClearTagRegistry()
         {
+            // Open the SmartPlant Review tag registry
             const string regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags";
             using (var regKey = Registry.CurrentUser.OpenSubKey(regPath, true))
             {
+                // Get the list of values
                 var values = regKey.GetValueNames();
+
+                // Iterate through the values
                 foreach (var t in values)
+                {
+                    // Delete the current value
                     regKey.DeleteValue(t);
+                }
             }
         }
 
@@ -122,10 +145,15 @@ namespace SharpPlant.SharpPlantReview
         ///     Serializes a DataRow into a new SprTag.
         /// </summary>
         /// <param name="row">The DataRow containing the tag values.</param>
-        /// <returns>SprTag</returns>
+        /// <returns>The constructed SprTag.</returns>
         public static SprTag BuildTagFromData(System.Data.DataRow row)
         {
+            if (row == null)
+                return null;
+
             var returnTag = new SprTag();
+
+            // Add the values to the tag data dictionary
             for (int i = 0; i < row.Table.Columns.Count; i++)
             {
                 var key = row.Table.Columns[i].ColumnName;
@@ -134,8 +162,8 @@ namespace SharpPlant.SharpPlantReview
 
             return returnTag;
         }
-
-        /// <summary>
+		
+		/// <summary>
         ///     Serializes a SprAnnotation from a qualified DataRow
         /// </summary>
         /// <param name="row">The DataRow containing the annotation values.</param>
@@ -153,16 +181,23 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     Handles errors passed through the active DrAPi application object.
+        ///     Checks for errors from a status returned by a DrApi function.
         /// </summary>
-        /// <param name="errorCode">The error code returned from a DrApi method</param>
-        public static void ErrorHandler(int errorCode)
+        /// <param name="status">The integer status returned by a DrApi function.</param>
+        public static void ErrorCheck(int status)
         {
-            if (errorCode == 0) return;
+            var sprApp = SprApplication.ActiveApplication;
+            if (sprApp == null)
+                throw SprExceptions.SprNotConnected;
+
+            if (status == 0)
+                return;
+            
             var errorString = string.Empty;
-            SprApplication.ActiveApplication.DrApi.ErrorFunctionString(errorCode, errorString);
-            if (errorString != string.Empty)
-                throw new Exception(errorString);
+            sprApp.DrApi.ErrorString(status, out errorString);
+
+            sprApp.LastError = errorString;
+            throw new SprException(errorString);
         }
     }
 }

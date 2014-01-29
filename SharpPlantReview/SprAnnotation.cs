@@ -272,7 +272,7 @@ namespace SharpPlant.SharpPlantReview
             Flags |= SprConstants.SprAnnoLeader | SprConstants.SprAnnoBackground;
 
             // Create a new data dictionary from the template
-            Data = SprUtilities.GetAnnotationTemplate();
+            Data = SprUtilities.AnnotationTemplate();
 
             // Set the tag to the next available tag number
             Id = Application.NextAnnotation;

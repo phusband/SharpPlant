@@ -52,6 +52,7 @@ namespace SharpPlant.SharpPlantReview
         // SPRWindow initializer
         internal SprWindow()
         {
+            // Link the parent application
             Application = SprApplication.ActiveApplication;
         }
     }

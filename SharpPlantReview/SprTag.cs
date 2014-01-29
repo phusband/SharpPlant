@@ -5,7 +5,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Drawing;
+using SharpPlant;
 
 namespace SharpPlant.SharpPlantReview
 {
@@ -39,8 +41,10 @@ namespace SharpPlant.SharpPlantReview
             set
             {
                 // Set flag true/false
-                if (value) Flags |= SprConstants.SprTagLeader;
-                else Flags &= ~SprConstants.SprTagLeader;
+                if (value)
+                    Flags |= SprConstants.SprTagLeader;
+                else
+                    Flags &= ~SprConstants.SprTagLeader;
             }
         }
 
@@ -91,7 +95,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string Text
         {
-            get { return Data["tag_text"].ToString(); }
+            get { return (string)Data["tag_text"]; }
             set { Data["tag_text"] = value; }
         }
 
@@ -154,7 +158,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string Discipline
         {
-            get { return Data["discipline"].ToString(); }
+            get { return (string)Data["discipline"]; }
             set { Data["discipline"] = value; }
         }
 
@@ -163,7 +167,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string Creator
         {
-            get { return Data["creator"].ToString(); }
+            get { return (string)Data["creator"]; }
             set { Data["creator"] = value; }
         }
 
@@ -172,7 +176,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string ComputerName
         {
-            get { return Data["computer_name"].ToString(); }
+            get { return (string)Data["computer_name"]; }
             set { Data["computer_name"] = value; }
         }
 
@@ -181,7 +185,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string Status
         {
-            get { return Data["status"].ToString(); }
+            get { return (string)Data["status"]; }
             set { Data["status"] = value; }
         }
 
@@ -216,7 +220,12 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                return Labels != null;
+                return !(Convert.ToInt32(Data["linkage_id_0"]) == 0 &&
+                         Convert.ToInt32(Data["linkage_id_1"]) == 0 &&
+                         Convert.ToInt32(Data["linkage_id_2"]) == 0 &&
+                         Convert.ToInt32(Data["linkage_id_3"]) == 0);
+                
+                //return Labels != null;
             }
         }
 
@@ -227,15 +236,11 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (_labels == null)
-                {
-                    _labels = GetLabels();
-                    return _labels;
-                }
-                return _labels;
+                if (!IsDataLinked)
+                    return null;
+                return GetLabels();
             }
         }
-        private Dictionary<string, string> _labels;
 
         /// <summary>
         ///     The model number linked to the tagged object.
@@ -247,9 +252,9 @@ namespace SharpPlant.SharpPlantReview
                 if (_modelNumber == null)
                 {
                     _modelNumber = GetModelNumber();
-                    return _modelNumber;
                 }
-                else return _modelNumber;
+
+                return _modelNumber;
             }
         }
         private string _modelNumber;
@@ -295,7 +300,7 @@ namespace SharpPlant.SharpPlantReview
             Application = SprApplication.ActiveApplication;
 
             // Create a new data dictionary from the template
-            Data = SprUtilities.GetTagTemplate();
+            Data = SprUtilities.TagTemplate();
 
             // Set the tag to the next available tag number
             Id = Application.NextTag;
@@ -317,7 +322,6 @@ namespace SharpPlant.SharpPlantReview
             Status = "Open";
 
             // Set the backing properties to null by default
-            _labels = null;
             _modelNumber = null;
         }
 
@@ -330,16 +334,11 @@ namespace SharpPlant.SharpPlantReview
             // Build the linkage address
             var linkID = string.Format("{0} {1} {2} {3}", Data["linkage_id_0"], Data["linkage_id_1"],
                                                           Data["linkage_id_2"], Data["linkage_id_3"]);
-
-            // Build the connection string to the MDB2 file
-            var connectionFormat = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source={0}2;";
-            var connectionString = string.Format(connectionFormat, Application.MdbPath);
-
-            // Create the connection
-            using (var connection = new System.Data.OleDb.OleDbConnection(connectionString))
+            // Create the connection to the MDB2 database
+            using (var connection = DbMethods.GetConnection(Application.MdbPath + 2, DbMethods.ConnectionType.Ace))
             {
                 // Open the MDB2 connection
-                connection.Open();
+                DbMethods.CheckOpenConnection(connection);
 
                 // Create a command
                 var command = connection.CreateCommand();
@@ -374,7 +373,7 @@ namespace SharpPlant.SharpPlantReview
                     // Iterate through the end of the data
                     while (reader.Read())
                     {
-                        // Set the kev/value
+                        // Set the key/value
                         var key = reader.GetString(0);
                         var value = reader.GetString(1);
 
@@ -401,34 +400,21 @@ namespace SharpPlant.SharpPlantReview
             var linkID = string.Format("{0} {1} {2} {3}", Data["linkage_id_0"], Data["linkage_id_1"],
                                                           Data["linkage_id_2"], Data["linkage_id_3"]);
 
-            // Build the connection string
-            var connectionFormat = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source={0}2;";
-            var connectionString = string.Format(connectionFormat, Application.MdbPath);
-
             // Create a connection to the MDB2
-            using (var connection = new System.Data.OleDb.OleDbConnection(connectionString))
+            using (var connection = DbMethods.GetConnection(Application.MdbPath + 2, DbMethods.ConnectionType.Ace))
             {
                 // Open the MDB2 connection
-                connection.Open();
+                DbMethods.CheckOpenConnection(connection);
 
                 // Build the command
                 var command = connection.CreateCommand();
                 command.CommandText = string.Format("SELECT file_name FROM linkage WHERE DMRSLinkage = '{0}'", linkID);
                 
                 // Get the model number
-                object modelNumber = null;
-                try
-                {
-                    modelNumber = command.ExecuteScalar();
-                }
-                catch (System.Data.OleDb.OleDbException)
-                {
-                }
+                var modelNumber = (string)command.ExecuteScalar();
                 
                 // Return the model number
-                if (modelNumber == null)
-                    return "Model Not Found";
-                return modelNumber.ToString();
+                return modelNumber == null ? "Not Found" : modelNumber.ToString();
             }
         }
     }

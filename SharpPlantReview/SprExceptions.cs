@@ -4,18 +4,29 @@
 //
 
 using System;
+using System.Runtime.Serialization;
 
 namespace SharpPlant.SharpPlantReview
 {
+    [Serializable]
+    public class SprException : Exception
+    {
+        public SprException(string message) : base(message) 
+        { }
+
+        // Ensure Exception is Serializable
+        protected SprException(SerializationInfo info, StreamingContext ctxt) : base(info, ctxt)
+        { }
+    }
+
     internal static class SprExceptions
     {
-        internal static Exception SprNotConnected = new Exception("A SmartPlant Review connection is not established.");
-        internal static Exception SprOutOfMemory = new Exception("The SmartPlant Review application ran out of memory.");
-        internal static Exception SprObjectCreateFail = new Exception("The SmartPlant API object failed to be instanciated.");
-        internal static Exception SprTagNotPlaced = new Exception("The provided tag has not been placed in SmartPlant Review.");
-        internal static Exception SprNullPoint = new Exception("One or more required points are null.");
-        internal static Exception SprTagNotFound = new Exception("The desired tag does not exist in the MDB database.");
-        internal static Exception SprAnnotationNotFound = new Exception("The desired annotation does not exist in the MDB database.");
-        internal static Exception SprUnsupportedMethod = new Exception("The active version of SmartPlant Review does not suppoort this method.");
+        internal static SprException SprNotConnected = new SprException("A SmartPlant Review connection is not established.");
+        internal static SprException SprObjectCreateFail = new SprException("The SmartPlant API object failed to be instanciated.");
+        internal static SprException SprTagNotPlaced = new SprException("The provided tag has not been placed in SmartPlant Review.");
+        internal static SprException SprNullPoint = new SprException("One or more required points are null.");
+        internal static SprException SprTagNotFound = new SprException("The desired tag does not exist in the MDB database.");
+        internal static SprException SprAnnotationNotFound = new SprException("The desired annotation does not exist in the MDB database.");
+        internal static SprException SprVersionIncompatibility = new SprException("The operation is not supported in the current version of SmartPlant Review.");
     }
 }
