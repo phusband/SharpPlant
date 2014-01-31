@@ -208,8 +208,9 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                try { return Data["tag_image"] != DBNull.Value; }
-                catch (KeyNotFoundException){ return false; } 
+                if (!Data.ContainsKey("tag_image"))
+                    return false;
+                return Data["tag_image"] != DBNull.Value;
             }
         }
 
@@ -218,46 +219,25 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public bool IsDataLinked
         {
-            get
-            {
-                return !(Convert.ToInt32(Data["linkage_id_0"]) == 0 &&
-                         Convert.ToInt32(Data["linkage_id_1"]) == 0 &&
-                         Convert.ToInt32(Data["linkage_id_2"]) == 0 &&
-                         Convert.ToInt32(Data["linkage_id_3"]) == 0);
-                
-                //return Labels != null;
-            }
+            get { return Linkage.ToString() != "0 0 0 0"; }
         }
 
         /// <summary>
-        ///     The Key/Value label collection associated with the tag.
+        ///     The object label linkage owned by the tag.
         /// </summary>
-        public Dictionary<string,string> Labels
+        public SprLinkage Linkage
         {
             get
             {
-                if (!IsDataLinked)
-                    return null;
-                return GetLabels();
+                var linkString = string.Format("{0} {1} {2} {3}",
+                                      Data["linkage_id_0"],
+                                      Data["linkage_id_1"],
+                                      Data["linkage_id_2"],
+                                      Data["linkage_id_3"]);
+
+                return new SprLinkage(linkString);
             }
         }
-
-        /// <summary>
-        ///     The model number linked to the tagged object.
-        /// </summary>
-        public string ModelNumber
-        {
-            get
-            {
-                if (_modelNumber == null)
-                {
-                    _modelNumber = GetModelNumber();
-                }
-
-                return _modelNumber;
-            }
-        }
-        private string _modelNumber;
 
         /// <summary>
         ///     Tag unique identification number.
@@ -271,20 +251,21 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     The object the tag is attached to, if any.
         /// </summary>
-        //public SprObjectData AssociatedObject
-        //{ 
-        //    get
-        //    {
-        //        try { return Application.GetObjectData(Convert.ToInt32(Data["object_id"])); }
-        //        catch (KeyNotFoundException){ return null; }
-        //        catch (InvalidCastException) { return null; } 
-        //    }
-        //    internal set
-        //    {
-        //        try { Data["object_id"] = value.ObjectId; }
-        //        catch (KeyNotFoundException) { } 
-        //    }
-        //}
+        public SprObject LinkedObject
+        {
+            get
+            {
+                if (!IsDataLinked)
+                    return null;
+
+                if (_linkedObject == null)
+                    _linkedObject = GetLinkedObject();
+
+                return _linkedObject;
+                //return GetLinkedObject();
+            }
+        }
+        private SprObject _linkedObject;
 
         /// <summary>
         ///     The full information profile of the current tag.  Controls all the tag properties.
@@ -320,102 +301,30 @@ namespace SharpPlant.SharpPlantReview
 
             // Set the default status
             Status = "Open";
-
-            // Set the backing properties to null by default
-            _modelNumber = null;
         }
 
-        // Query the MDB2 database for the labels
-        private Dictionary<string,string> GetLabels()
+        private SprObject GetLinkedObject()
         {
-            // Create the return hashtable
-            var returnData = new Dictionary<string, string>();
-
-            // Build the linkage address
-            var linkID = string.Format("{0} {1} {2} {3}", Data["linkage_id_0"], Data["linkage_id_1"],
-                                                          Data["linkage_id_2"], Data["linkage_id_3"]);
-            // Create the connection to the MDB2 database
-            using (var connection = DbMethods.GetConnection(Application.MdbPath + 2, DbMethods.ConnectionType.Ace))
+            var searchString = string.Format("FIND linkages = {0}",Linkage.ToString());
+            var objIds = Application.ObjectDataSearch(searchString);
+            if (objIds.Count > 1)
             {
-                // Open the MDB2 connection
-                DbMethods.CheckOpenConnection(connection);
+                // Use the tag origin point to filter down to a single object
+                var volumeFormat = "{0} N, {1} E, {2} El";
+                var volumeStart = string.Format(volumeFormat, OriginPoint.North, OriginPoint.East, OriginPoint.Elevation);
+                var volumeEnd = string.Format(volumeFormat, OriginPoint.North, OriginPoint.East, OriginPoint.Elevation);
 
-                // Create a command
-                var command = connection.CreateCommand();
+                searchString = string.Format("{0}\nKEEP ONLY Volume Overlap {1} to {2}",
+                                            searchString, volumeStart, volumeEnd);
 
-                // Build the commandstring
-                command.CommandText = string.Format("SELECT linkage_index FROM linkage WHERE DMRSLinkage = '{0}'", linkID);
-                
-                // Get the linkage address
-                object linkageIndex = null;
-                try
-                {
-                    linkageIndex = command.ExecuteScalar();
-                }
-                catch (System.Data.OleDb.OleDbException)
-                {
-                }
-
-                // Return if the linkage was not found
-                if (linkageIndex == null)
-                    return null;
-
-                // Build the string to gather label information
-                command.CommandText = "SELECT label_names.label_name, label_values.label_value " +
-                                      "FROM (labels INNER JOIN label_names ON labels.label_name_index = label_names.label_name_index) " +
-                                      "INNER JOIN label_values ON labels.label_value_index = label_values.label_value_index " +
-                                      "WHERE(((labels.linkage_index) = " + linkageIndex + ")) " +
-                                      "ORDER BY labels.label_line_number";
-
-                // Create a datareader to walk through the label data
-                using (var reader = command.ExecuteReader())
-                {
-                    // Iterate through the end of the data
-                    while (reader.Read())
-                    {
-                        // Set the key/value
-                        var key = reader.GetString(0);
-                        var value = reader.GetString(1);
-
-                        // Add non-duplicate keys to the hashtable
-                        if (!returnData.ContainsKey(key))
-                        {
-                            returnData.Add(key, value);
-                        }
-                    }
-                }
+                objIds = Application.ObjectDataSearch(searchString);
             }
 
-            // Return the hashtable
-            if (returnData.Count > 0)
-                return returnData;
-            return null;
-
-        }
-
-        // Query the MDB2 database for the model number
-        private string GetModelNumber()
-        {
-            // Build the linkage address
-            var linkID = string.Format("{0} {1} {2} {3}", Data["linkage_id_0"], Data["linkage_id_1"],
-                                                          Data["linkage_id_2"], Data["linkage_id_3"]);
-
-            // Create a connection to the MDB2
-            using (var connection = DbMethods.GetConnection(Application.MdbPath + 2, DbMethods.ConnectionType.Ace))
-            {
-                // Open the MDB2 connection
-                DbMethods.CheckOpenConnection(connection);
-
-                // Build the command
-                var command = connection.CreateCommand();
-                command.CommandText = string.Format("SELECT file_name FROM linkage WHERE DMRSLinkage = '{0}'", linkID);
-                
-                // Get the model number
-                var modelNumber = (string)command.ExecuteScalar();
-                
-                // Return the model number
-                return modelNumber == null ? "Not Found" : modelNumber.ToString();
-            }
+            if (objIds.Count == 0)
+                return null;
+            else if (objIds.Count > 1)
+                throw new SprException("Multiple objects found for linkage " + Linkage.ToString());
+            return Application.GetObjectData(objIds[0]);         
         }
     }
 }

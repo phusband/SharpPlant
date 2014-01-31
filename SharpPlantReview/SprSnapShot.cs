@@ -205,8 +205,11 @@ namespace SharpPlant.SharpPlantReview
             DrSnapShot = Activator.CreateInstance(SprImportedTypes.DrSnapShot);
 			
 			// Set the default snapshot values
-            Flags = Application.DefaultSnapshot.Flags;
-            AntiAlias = Application.DefaultSnapshot.AntiAlias;
+            if (Application.DefaultSnapshot != null)
+            {
+                Flags = Application.DefaultSnapshot.Flags;
+                AntiAlias = Application.DefaultSnapshot.AntiAlias;
+            }
 
             // Set the default size based on the main window 
             if (Application.IsConnected) Height = Application.MainWindow.Height;

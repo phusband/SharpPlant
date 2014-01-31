@@ -20,6 +20,15 @@ namespace SharpPlant
         public const int GW_OWNER = 4;
         public const int GW_CHILD = 5;
 
+        public const int MOUSEEVENTF_LEFTDOWN = 0x02;
+        public const int MOUSEEVENTF_LEFTUP = 0x04;
+
+        [DllImport("user32.dll")]
+        public static extern bool SetCursorPos(int x, int y);
+
+        [DllImport("user32.dll")]
+        public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
+
         [DllImport("user32.dll")]
         public static extern int FindWindow(
             string lpClassName, // class name 
@@ -91,6 +100,9 @@ namespace SharpPlant
             StringBuilder lpClassName,
             int nMaxCount
             );
+
+        [DllImport("user32.dll")]
+        public static extern bool LockWindowUpdate(IntPtr hWndLock);
 
         [DllImport("user32")]
         public static extern int EnumWindows(EnumWindowsProcDelegate lpEnumFunc, int lParam);

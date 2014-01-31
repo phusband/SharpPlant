@@ -228,7 +228,7 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     The object associated with the annotation.
         /// </summary>
-        public SprObjectData AssociatedObject
+        public SprObject AssociatedObject
         {
             get
             {
@@ -237,7 +237,7 @@ namespace SharpPlant.SharpPlantReview
             }
             internal set
             {
-                try { Data["object_id"] = value.ObjectId; }
+                try { Data["object_id"] = value.Id; }
                 catch (KeyNotFoundException) { }
             }
         }

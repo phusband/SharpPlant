@@ -11,9 +11,9 @@ namespace SharpPlant.SharpPlantReview
     /// <summary>
     ///     Contains information about a particular SmartPlant Review object.
     /// </summary>
-    public class SprObjectData
+    public class SprObject
     {
-        #region ObjectData Properties
+        #region SprObject Properties
 
         /// <summary>
         ///     The active COM reference to the DrObjectDataDbl class
@@ -26,7 +26,7 @@ namespace SharpPlant.SharpPlantReview
         public SprApplication Application { get; private set; }
 
         /// <summary>
-        ///     DataObject color index.
+        ///     SprObject color index.
         /// </summary>
         public int Color
         {
@@ -38,7 +38,7 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     Number of display sets the ObjectData object belongs to.
+        ///     Number of display sets the SprObject belongs to.
         /// </summary>
         public int DisplaySetCount
         {
@@ -75,7 +75,7 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     Name of the file that the ObjectData object is in.
+        ///     Name of the file that the SprObject is in.
         /// </summary>
         public string FileName
         {
@@ -86,7 +86,7 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     Name of the ObjectData label file.
+        ///     Name of the SprObject label file.
         /// </summary>
         public string LabelFileName
         {
@@ -99,7 +99,20 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     DataObject level number.
+        ///     The object label linkage.
+        /// </summary>
+        public SprLinkage Linkage
+        {
+            get
+            {
+                if (IsActive)
+                    return new SprLinkage(DrObjectDataDbl.LabelKey);
+                return null;
+            }
+        }
+
+        /// <summary>
+        ///     The level number of the SprObject.
         /// </summary>
         public int Level
         {
@@ -111,7 +124,7 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     DataObject material name.
+        ///     The material name of the SprObject.
         /// </summary>
         public string MaterialName
         {
@@ -124,7 +137,7 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     DataObject palette name.
+        ///     The material palette file of the SprObject.
         /// </summary>
         public string PaletteName
         {
@@ -137,14 +150,14 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     The Object ID of the selected ObjectData.
+        ///     The Object Id of the SprObject.
         /// </summary>
-        public int ObjectId { get; internal set; }
+        public int Id { get; internal set; }
 
         /// <summary>
         ///     A collection of key/value pairs containing object label entries
         /// </summary>
-        public Dictionary<string, string> LabelData { get; private set; }
+        public Dictionary<string, string> Labels { get; private set; }
 
         // Determines whether a reference to the COM object is established
         private bool IsActive
@@ -155,7 +168,7 @@ namespace SharpPlant.SharpPlantReview
         #endregion
 
         // DataObject initializer
-        internal SprObjectData()
+        internal SprObject()
         {
             // Link the parent application
             Application = SprApplication.ActiveApplication;
@@ -164,7 +177,7 @@ namespace SharpPlant.SharpPlantReview
             DrObjectDataDbl = Activator.CreateInstance(SprImportedTypes.DrObjectDataDbl);
 
             // Create the label dictionary
-            LabelData = new Dictionary<string, string>();
+            Labels = new Dictionary<string, string>();
         }
     }
 }

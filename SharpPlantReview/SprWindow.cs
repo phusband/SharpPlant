@@ -49,6 +49,7 @@ namespace SharpPlant.SharpPlantReview
 
         #endregion
 
+
         // SPRWindow initializer
         internal SprWindow()
         {

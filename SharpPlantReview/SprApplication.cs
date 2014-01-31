@@ -11,6 +11,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using System.Threading;
+using System.Drawing;
 
 namespace SharpPlant.SharpPlantReview
 {
@@ -514,6 +515,38 @@ namespace SharpPlant.SharpPlantReview
             LastResult = DrApi.HighlightObject(objectId, 1, 0);
         }
 
+        [Obsolete]
+        public void HighlightObjectAtPoint(SprPoint3D objPoint)
+        {
+            var orgPoint = GetCenterPoint();
+
+            // Lock the SPR main window
+            NativeWin32.LockWindowUpdate((IntPtr)ApplicationWindow.WindowHandle);
+
+            SetCenterPoint(objPoint);
+
+            var mainP = new Point(ApplicationWindow.Left, ApplicationWindow.Top);
+            var offX = MainWindow.Left - ApplicationWindow.Left;
+            var offY = MainWindow.Top - ApplicationWindow.Top;
+
+            var midX = mainP.X + (MainWindow.Width / 2);
+            var midY = mainP.Y + (MainWindow.Height / 2);
+            var midP = new Point(midX + offX, midY + offY);
+
+            var oldCursor = Cursor.Position;
+
+            NativeWin32.SetCursorPos(midP.X, midP.Y);
+            NativeWin32.mouse_event(NativeWin32.MOUSEEVENTF_LEFTDOWN, midP.X, midP.Y, 0, 0);
+            NativeWin32.mouse_event(NativeWin32.MOUSEEVENTF_LEFTUP, midP.X, midP.Y, 0, 0);
+
+            SetCenterPoint(orgPoint);
+
+            Cursor.Position = oldCursor;
+
+            // Unlock the SPR main window
+            NativeWin32.LockWindowUpdate(IntPtr.Zero);
+        }
+
         /// <summary>
         ///     Clears all highlighting from the main SmartPlant Review application window.
         /// </summary>
@@ -637,19 +670,19 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         /// <param name="objectId">The ObjectId that is looked up inside SmartPlant Review.</param>
         /// <returns>SprObjectData object containing the retrieved information.</returns>
-        public SprObjectData GetObjectData(int objectId)
+        public SprObject GetObjectData(int objectId)
         {
             // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
 
             // Create the return object
-            var returnData = new SprObjectData();
+            var returnData = new SprObject();
 
             // Return null if the objectId is zero
             if (objectId == 0) return null;
 
             // Set the return object ID
-            returnData.ObjectId = objectId;
+            returnData.Id = objectId;
 
             // Get the DataDbl object
             LastResult = DrApi.ObjectDataGetDbl(objectId, 2, ref returnData.DrObjectDataDbl);
@@ -662,10 +695,10 @@ namespace SharpPlant.SharpPlantReview
                 LastResult = DrApi.ObjectDataLabelGet(ref lblName, ref lblValue, i);
 
                 // Check if the label already exists
-                if (!returnData.LabelData.ContainsKey(lblName))
+                if (!returnData.Labels.ContainsKey(lblName))
 
                     // Add the label data to the dictionary
-                    returnData.LabelData.Add(lblName, lblValue);
+                    returnData.Labels.Add(lblName, lblValue);
             }
 
             // Return the data object
@@ -678,7 +711,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         /// <param name="prompt">The prompt string to be displayed in the application text window.</param>
         /// <returns>The SprObjectData object containing the retrieved information.</returns>
-        public SprObjectData GetObjectData(string prompt)
+        public SprObject GetObjectData(string prompt)
         {
             return GetObjectData(prompt, false);
         }
@@ -690,7 +723,7 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="prompt">The prompt string to be displayed in the application text window.</param>
         /// <param name="singleObjects">Indicates if SmartPlant Review locates grouped objects individually.</param>
         /// <returns>The SprObjectData object containing the retrieved information.</returns>
-        public SprObjectData GetObjectData(string prompt, bool singleObjects)
+        public SprObject GetObjectData(string prompt, bool singleObjects)
         {
             // Throw an exception if not connected
             if (!IsConnected) throw SprExceptions.SprNotConnected;
@@ -702,6 +735,23 @@ namespace SharpPlant.SharpPlantReview
             return GetObjectData(objId);
         }
 
+        public List<int> ObjectDataSearch(string criteria)
+        {
+            int itemCount;
+            LastResult = DrApi.ObjectDataSearch(criteria, 0, out itemCount);
+
+            var returnIds = new List<int>();
+            for (int i = 0; i < itemCount; i++)
+            {
+                int curId;
+                LastResult = DrApi.ObjectDataSearchIdGet(out curId, i);
+                if (curId != 0)
+                    returnIds.Add(curId);
+
+            }
+
+            return returnIds;
+        }
         #endregion
 
         #region Text Window
@@ -1071,9 +1121,9 @@ namespace SharpPlant.SharpPlantReview
             // Throw an exception if either of the point retrievals failed
             if (objId == 0 || tagLeader == null) throw SprExceptions.SprNullPoint;
 
-            // Get the current object for the label key
+            // Get the current object linkage
             var currentObject = GetObjectData(objId);
-            dynamic tagLabelKey = currentObject.DrObjectDataDbl.LabelKey;
+            var tagLinkage = currentObject.Linkage;
 
             // Turn label tracking on on the flag bitmask
             tag.Flags |= SprConstants.SprTagLabel;
@@ -1083,7 +1133,7 @@ namespace SharpPlant.SharpPlantReview
 
             // Place the tag
             LastResult = DrApi.TagSetDbl(tag.Id, 0, tag.Flags, ref tagLeader.DrPointDbl,
-                                            ref tagOrigin.DrPointDbl, tagLabelKey, tag.Text);
+                                            ref tagOrigin.DrPointDbl, tagLinkage.DrKey, tag.Text);
 
             // Retrieve the placed tag data
             tag = Tags_Get(tag.Id);
@@ -1151,7 +1201,7 @@ namespace SharpPlant.SharpPlantReview
 
             // Get the current object for the label key
             var currentObject = GetObjectData(objId);
-            dynamic tagLabelKey = currentObject.DrObjectDataDbl.LabelKey;
+            var tagLinkage = currentObject.Linkage;
 
             // Turn label tracking on on the flag bitmask
             tag.Flags |= SprConstants.SprTagLabel;
@@ -1161,7 +1211,7 @@ namespace SharpPlant.SharpPlantReview
 
             // Update the tag with the new leader points
             LastResult = DrApi.TagSetDbl(tag.Id, 0, tag.Flags, tagLeader.DrPointDbl,
-                                                tagOrigin.DrPointDbl, tagLabelKey, tagText);
+                                                tagOrigin.DrPointDbl, tagLinkage.DrKey, tagText);
 
             // Reference the placed tag
             tag = Tags_Get(tag.Id);
@@ -1809,7 +1859,7 @@ namespace SharpPlant.SharpPlantReview
         }
       
         /// <summary>
-        ///     
+        ///     Compatible only with SPR versions 9 and above.
         /// </summary>
         /// <param name="quality"></param>
         /// <param name="path"></param>
@@ -1831,6 +1881,21 @@ namespace SharpPlant.SharpPlantReview
         public void SetCenterPoint(double east, double north, double elevation)
         {
             SetCenterPoint(new SprPoint3D(east, north, elevation));
+        }
+
+        public SprPoint3D GetCenterPoint()
+        {
+            if (!IsConnected)
+                throw SprExceptions.SprNotConnected;
+
+            // Create the DrViewDbl
+            dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
+
+            // Set the view object as the SPR Application main view
+            LastResult = DrApi.ViewGetDbl(0, ref objViewdataDbl);
+
+            // Return the centerpoint
+            return new SprPoint3D(objViewdataDbl.CenterUorPoint);
         }
 
         public void SetCenterPoint(SprPoint3D centerPoint)
