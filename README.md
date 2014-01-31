@@ -76,6 +76,37 @@ SharpPlant is a .NET wrapper for Intergraph SmartPlant® products, written in C#
 
 ```
 
+### DrAPI Object Wrapping:
+- DrAPI: SprApplication
+- DrAnnotationDbl: SprAnnotation
+- DrDisplaySetDbl: NOT WRAPPED
+- DrKey: SprLinkage
+- DrLongArray: OBSOLETE
+- DrMask: NOT WRAPPED
+- DrMeasurement: NOT WRAPPED
+- DrMeasurementCollection: NOT WRAPPED
+- DrObjectDataDbl: SprObject
+- DrPointDbl: SprPoint
+- DrSnapShot: SprSnapShot
+- DrStringArray: OBSOLETE
+- DrTransform: NOT WRAPPED
+- DrViewDbl: NOT WRAPPED
+- DrVolumeAnnotation: NOT WRAPPED
+- DrWindow: SprWindow
+
+## SmartPlant® Review Development Notes:
+SharpPlant does not require the VaxCtrl3.dll to be added as a project reference, however it needs to be registered
+on any machine it runs on (installing SmartPlant® Review does this automatically).
+
+Additional resources for SmartPlant® Review development can be found in the ..\resdlls\0009 directory inside the local install folder:
+- DRAPI_API.cmh
+- Drapix_API.chm
+
+If the API module is installed, additional libraries and files will be located in the ..\Api directory inside the local install folder:
+- DRAPI.H
+- drapi32.dll
+- drapi32.lib
+
 ## Release History
 - 4/8/2013 Initial release
 - 8/12/2013 Beta 0.4 Release
