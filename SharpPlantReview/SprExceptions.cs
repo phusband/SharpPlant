@@ -11,7 +11,7 @@ namespace SharpPlant.SharpPlantReview
     [Serializable]
     public class SprException : Exception
     {
-        public SprException(string message) : base(message) 
+        public SprException(string message, params object[] args) : base(string.Format(message, args)) 
         { }
 
         // Ensure Exception is Serializable
@@ -28,5 +28,6 @@ namespace SharpPlant.SharpPlantReview
         internal static SprException SprTagNotFound = new SprException("The desired tag does not exist in the MDB database.");
         internal static SprException SprAnnotationNotFound = new SprException("The desired annotation does not exist in the MDB database.");
         internal static SprException SprVersionIncompatibility = new SprException("The operation is not supported in the current version of SmartPlant Review.");
+        //internal static SprException SprMdbAccess = new SprException();
     }
 }

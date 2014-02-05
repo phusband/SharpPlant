@@ -1,5 +1,5 @@
 ﻿//
-//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  Copyright © 2014 Parrish Husband (parrish.husband@gmail.com)
 //  The MIT License (MIT) - See LICENSE.txt for further details.
 //
 
@@ -10,7 +10,7 @@ namespace SharpPlant.SharpPlantReview
     /// </summary>
     public class SprPoint3D
     {
-        #region Point3D Properties
+        #region Properties
 
         /// <summary>
         ///     Active COM reference to the DrPointDbl class.
@@ -52,18 +52,17 @@ namespace SharpPlant.SharpPlantReview
 
         #endregion
 
-        // Point3D constructors
-        public SprPoint3D()
-        {
-            DrPointDbl = System.Activator.CreateInstance(SprImportedTypes.DrPointDbl);
-            if (DrPointDbl == null) throw SprExceptions.SprObjectCreateFail;
-        }
+        #region Constructors
 
         internal SprPoint3D(dynamic drPointDbl)
         {
             DrPointDbl = drPointDbl;
         }
-
+        public SprPoint3D()
+        {
+            DrPointDbl = System.Activator.CreateInstance(SprImportedTypes.DrPointDbl);
+            if (DrPointDbl == null) throw SprExceptions.SprObjectCreateFail;
+        }
         public SprPoint3D(double east, double north, double elevation)
         {
             DrPointDbl = System.Activator.CreateInstance(SprImportedTypes.DrPointDbl);
@@ -73,5 +72,7 @@ namespace SharpPlant.SharpPlantReview
             North = north;
             Elevation = elevation;
         }
+
+        #endregion
     }
 }

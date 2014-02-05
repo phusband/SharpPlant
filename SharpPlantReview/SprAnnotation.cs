@@ -275,7 +275,7 @@ namespace SharpPlant.SharpPlantReview
             Data = SprUtilities.AnnotationTemplate();
 
             // Set the tag to the next available tag number
-            Id = Application.NextAnnotation;
+            Id = 0;
 
             // Set the default annotation type
             Type = "Standard";

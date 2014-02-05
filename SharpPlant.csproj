@@ -68,6 +68,7 @@
     <Compile Include="SharpPlantReview\SprAnnotation.cs" />
     <Compile Include="SharpPlantReview\SprApplication.cs" />
     <Compile Include="SharpPlantReview\SprConstants.cs" />
+    <Compile Include="SharpPlantReview\SprDisplaySet.cs" />
     <Compile Include="SharpPlantReview\SprExceptions.cs" />
     <Compile Include="SharpPlantReview\SprImportedTypes.cs" />
     <Compile Include="SharpPlantReview\SprLinkage.cs" />
@@ -80,10 +81,14 @@
     <Compile Include="SharpPlantReview\SprSnapShot.cs" />
     <Compile Include="SharpPlantReview\SprSnapshotFormat.cs" />
     <Compile Include="SharpPlantReview\SprTag.cs" />
+    <Compile Include="SharpPlantReview\SprTagCollection.cs" />
     <Compile Include="SharpPlantReview\SprTagVisibility.cs" />
+    <Compile Include="SharpPlantReview\SprTextWindow.cs" />
     <Compile Include="SharpPlantReview\SprUtilities.cs" />
     <Compile Include="SharpPlantReview\SprWindow.cs" />
+    <Compile Include="SharpPlantReview\SprWindowType.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

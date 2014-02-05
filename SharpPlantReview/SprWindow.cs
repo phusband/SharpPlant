@@ -1,8 +1,9 @@
 ﻿//
-//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  Copyright © 2014 Parrish Husband (parrish.husband@gmail.com)
 //  The MIT License (MIT) - See LICENSE.txt for further details.
 //
 
+using System;
 namespace SharpPlant.SharpPlantReview
 {
     /// <summary>
@@ -13,6 +14,11 @@ namespace SharpPlant.SharpPlantReview
         #region SPRWindow Properties
 
         /// <summary>
+        ///     The active COM reference to the DrWindow class
+        /// </summary>
+        internal dynamic DrWindow;
+
+        /// <summary>
         ///     The parent Application reference.
         /// </summary>
         public SprApplication Application { get; private set; }
@@ -20,41 +26,112 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     Height of the working area of the window.
         /// </summary>
-        public int Height { get; set; }
+        public int Height
+        {
+            get
+            {
+                Refresh();
+                return DrWindow.Height;
+            }
+            set
+            {
+                DrWindow.Height = value;
+                Update();
+            }
+        }
 
         /// <summary>
         ///     Left(x) position of the top-left corner of the window.
         /// </summary>
-        public int Left { get; set; }
+        public int Left
+        {
+            get
+            {
+                Refresh();
+                return DrWindow.Left;
+            }
+            set
+            {
+                DrWindow.Left = value;
+                Update();
+            }
+        }
 
         /// <summary>
         ///     Top (y) position of the top-left corner of the window.
         /// </summary>
-        public int Top { get; set; }
+        public int Top
+        {
+            get
+            {
+                Refresh();
+                return DrWindow.Top;
+            }
+            set
+            {
+                DrWindow.Top = value;
+                Update();
+            }
+        }
 
         /// <summary>
         ///     Width of the working area of the window.
         /// </summary>
-        public int Width { get; set; }
+        public int Width
+        {
+            get
+            {
+                Refresh();
+                return DrWindow.Width;
+            }
+            set
+            {
+                DrWindow.Width = value;
+                Update();
+            }
+        }
 
         /// <summary>
-        ///     HWND of the window.
+        ///     The window handle.
         /// </summary>
-        public int WindowHandle { get; internal set; }
+        public int hWnd
+        {
+            get { return hwnd; }
+        }
+        private int hwnd;
 
         /// <summary>
         ///     Index of the window.
         /// </summary>
-        public int Index { get; internal set; }
+        public SprWindowType Type { get; private set; }
 
         #endregion
 
-
         // SPRWindow initializer
-        internal SprWindow()
+        internal SprWindow(SprApplication application, SprWindowType type)
         {
-            // Link the parent application
-            Application = SprApplication.ActiveApplication;
+            Application = application;
+
+            Type = type;
+
+            // Get a new DrSnapShot object
+            DrWindow = Activator.CreateInstance(SprImportedTypes.DrWindow);
+
+            Refresh();
         }
+
+        private void Refresh()
+        {
+            // Get the window data
+            Application.SprStatus = Application.DrApi.WindowGet((int)Type, out DrWindow);
+            Application.SprStatus = Application.DrApi.WindowHandleGet((int)Type, out hwnd);
+        }
+        private void Update()
+        {
+            // Set the window data
+            Application.SprStatus = Application.DrApi.WindowSet((int)Type, DrWindow);
+        }
+
+        
     }
 }

@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Drawing;
 using Microsoft.Win32;
 
@@ -12,6 +13,7 @@ namespace SharpPlant.SharpPlantReview
 {
     public static class SprUtilities
     {
+
         /// <summary>
         ///     Data template for creating a new SprTag object.
         /// </summary>
@@ -146,6 +148,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         /// <param name="row">The DataRow containing the tag values.</param>
         /// <returns>The constructed SprTag.</returns>
+        [Obsolete]
         public static SprTag BuildTagFromData(System.Data.DataRow row)
         {
             if (row == null)
@@ -154,11 +157,7 @@ namespace SharpPlant.SharpPlantReview
             var returnTag = new SprTag();
 
             // Add the values to the tag data dictionary
-            for (int i = 0; i < row.Table.Columns.Count; i++)
-            {
-                var key = row.Table.Columns[i].ColumnName;
-                returnTag.Data[key] = row.ItemArray[i];
-            }
+            returnTag.Row.ItemArray = row.ItemArray;
 
             return returnTag;
         }

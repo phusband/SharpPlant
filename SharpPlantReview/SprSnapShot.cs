@@ -217,7 +217,7 @@ namespace SharpPlant.SharpPlantReview
         }
 
         // Internal snapshot methods
-        internal static string FormatSnapshot(string imagePath, SprSnapshotFormat format)
+        internal static void FormatSnapshot(string imagePath, SprSnapshotFormat format)
         {
             // Get the saved image
             string finalImage = string.Empty;
@@ -286,8 +286,6 @@ namespace SharpPlant.SharpPlantReview
                     Thread.Sleep(100);
                 }
             }
-
-            return finalImage;
         }
     }
 }

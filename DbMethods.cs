@@ -130,6 +130,8 @@ namespace SharpPlant
                         dataAdapter.Update(new DataRow[] { row });                       
                     }
 
+                    inputTable.AcceptChanges();
+
                 } // Return false on error
                 catch (OleDbException ex)
                 {
@@ -159,6 +161,8 @@ namespace SharpPlant
 
                     // Update the MDB table
                     adapter.Update(inputTable);
+
+                    inputTable.AcceptChanges();
 
                 } // Return false on error
                 catch (OleDbException)
