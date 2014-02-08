@@ -20,6 +20,125 @@ namespace SharpPlant.SharpPlantReview
     /// </summary>
     public class SprApplication : IDisposable
     {
+        public sealed class SprApplicationWindows
+        {
+            /// <summary>
+            ///     The parent Application reference.
+            /// </summary>
+            public SprApplication Application { get; private set; }
+
+            /// <summary>
+            ///     The primary SmartPlant Review application window.
+            /// </summary>
+            public SprWindow ApplicationWindow
+            {
+                get
+                {
+                    if (applicationWindow == null)
+                        applicationWindow = GetWindow(SprWindowType.ApplicationWindow);
+                    return applicationWindow;
+                }
+                set
+                {
+                    applicationWindow = value;
+                }
+            }
+            private SprWindow applicationWindow;
+
+            /// <summary>
+            ///     The Elevation window inside the SmartPlant Review application.
+            /// </summary>
+            public SprWindow ElevationWindow
+            {
+                get
+                {
+                    if (elevationWindow == null)
+                        elevationWindow = GetWindow(SprWindowType.ElevationWindow);
+                    return elevationWindow;
+                }
+                set
+                {
+                    applicationWindow = value;
+                }
+            }
+            private SprWindow elevationWindow;
+
+            /// <summary>
+            ///     The Main view window inside the SmartPlant Review application.
+            /// </summary>
+            public SprWindow MainWindow
+            {
+                get
+                {
+                    if (mainWindow == null)
+                        mainWindow = GetWindow(SprWindowType.MainWindow);
+                    return mainWindow;
+                }
+                set
+                {
+                    mainWindow = value;
+                }
+            }
+            private SprWindow mainWindow;
+
+            /// <summary>
+            ///     The Plan view window inside the SmartPlant Review application.
+            /// </summary>
+            public SprWindow PlanWindow
+            {
+                get
+                {
+                    if (planWindow == null)
+                        planWindow = GetWindow(SprWindowType.PlanWindow);
+                    return planWindow;
+                }
+                set
+                {
+                    planWindow = value;
+                }
+            }
+            private SprWindow planWindow;
+
+            /// <summary>
+            ///     The Text window inside the SmartPlant Review application.
+            /// </summary>
+            public SprTextWindow TextWindow
+            {
+                get
+                {
+                    if (textWindow == null)
+                        textWindow = (SprTextWindow)GetWindow(SprWindowType.TextWindow);
+                    return textWindow;
+                }
+                set
+                {
+                    textWindow = value;
+                }
+            }
+            private SprTextWindow textWindow;
+
+            internal SprApplicationWindows(SprApplication application)
+            {
+                Application = application;
+
+                applicationWindow = GetWindow(SprWindowType.ApplicationWindow);
+                elevationWindow = GetWindow(SprWindowType.ElevationWindow);
+                mainWindow = GetWindow(SprWindowType.MainWindow);
+                planWindow = GetWindow(SprWindowType.PlanWindow);
+                textWindow = (SprTextWindow)GetWindow(SprWindowType.TextWindow);
+            }
+
+            private SprWindow GetWindow(SprWindowType type)
+            {
+                if (!Application.IsConnected)
+                    throw SprExceptions.SprNotConnected;
+
+                if (type == SprWindowType.TextWindow)
+                    return new SprTextWindow(Application);
+                return new SprWindow(Application, type);
+            }
+        }
+
         #region Properties
 
         private bool disposed;
@@ -58,24 +177,6 @@ namespace SharpPlant.SharpPlantReview
         private DataSet mdbDatabase;
 
         /// <summary>
-        ///     The primary SmartPlant Review application window.
-        /// </summary>
-        public SprWindow ApplicationWindow
-        {
-            get
-            {
-                if (applicationWindow == null)
-                    applicationWindow = GetWindow(SprWindowType.ApplicationWindow);
-                return applicationWindow;
-            }
-            set
-            {
-                applicationWindow = value;
-            }
-        }
-        private SprWindow applicationWindow;
-
-        /// <summary>
         ///     The default properties used when an SprSnapshot is omitted from snapshot methods.
         /// </summary>
         public SprSnapShot DefaultSnapshot { get; set; }
@@ -93,24 +194,6 @@ namespace SharpPlant.SharpPlantReview
             }
         }
         private List<string> designFiles;
-
-        /// <summary>
-        ///     The Elevation window inside the SmartPlant Review application.
-        /// </summary>
-        public SprWindow ElevationWindow
-        {
-            get
-            {
-                if (elevationWindow == null)
-                    elevationWindow = GetWindow(SprWindowType.ElevationWindow);
-                return elevationWindow;
-            }
-            set
-            {
-                applicationWindow = value;
-            }
-        }
-        private SprWindow elevationWindow;
 
         /// <summary>
         ///     Determines if the SmartPlant Review application is busy.
@@ -133,24 +216,6 @@ namespace SharpPlant.SharpPlantReview
         ///     The last error message returned from the most recent DrApi function call.
         /// </summary>
         public string LastError { get; internal set; }
-
-        /// <summary>
-        ///     The Main view window inside the SmartPlant Review application.
-        /// </summary>
-        public SprWindow MainWindow
-        {
-            get
-            {
-                if (mainWindow == null)
-                    mainWindow = GetWindow(SprWindowType.MainWindow);
-                return mainWindow;
-            }
-            set
-            {
-                mainWindow = value;
-            }
-        }
-        private SprWindow mainWindow;
 
         /// <summary>
         ///     Gets the MDB path to the active review session.
@@ -205,36 +270,18 @@ namespace SharpPlant.SharpPlantReview
         private int nextTag;
 
         /// <summary>
-        ///     The Plan view window inside the SmartPlant Review application.
-        /// </summary>
-        public SprWindow PlanWindow
-        {
-            get
-            {
-                if (planWindow == null)
-                    planWindow = GetWindow(SprWindowType.PlanWindow);
-                return planWindow;
-            }
-            set
-            {
-                planWindow = value;
-            }
-        }
-        private SprWindow planWindow;
-
-        /// <summary>
         ///     Gets the process ID of the SmartPlant Review application.
         /// </summary>
-        public IntPtr? ProcessId
+        public IntPtr ProcessId
         {
             get
             {
-                if (processId == null)
+                if (processId == IntPtr.Zero)
                     processId = GetProcessId();
                 return processId;
             }
         }
-        private IntPtr? processId;
+        private IntPtr processId;
 
         /// <summary>
         ///     Gets the filename of the active review session.
@@ -282,24 +329,6 @@ namespace SharpPlant.SharpPlantReview
         private SprTagCollection tags;
 
         /// <summary>
-        ///     The Text window inside the SmartPlant Review application.
-        /// </summary>
-        public SprWindow TextWindow
-        {
-            get
-            {
-                if (textWindow == null)
-                    textWindow = GetWindow(SprWindowType.TextWindow);
-                return textWindow;
-            }
-            set
-            {
-                textWindow = value;
-            }
-        }
-        private SprWindow textWindow;
-
-        /// <summary>
         ///     Gets the version of the running instance of SmartPlant Review.
         /// </summary>
         public string Version
@@ -307,6 +336,11 @@ namespace SharpPlant.SharpPlantReview
             get { return version; }
         }
         private readonly string version;
+
+        /// <summary>
+        ///     Represents a structure comntaining the SprApplication Windows.
+        /// </summary>
+        public SprApplicationWindows Windows { get; set; }
 
         #endregion
 
@@ -353,11 +387,7 @@ namespace SharpPlant.SharpPlantReview
             tags = new SprTagCollection(this);
             
             // Windows
-            applicationWindow = GetWindow(SprWindowType.ApplicationWindow);
-            elevationWindow = GetWindow(SprWindowType.ElevationWindow);
-            mainWindow = GetWindow(SprWindowType.MainWindow);
-            planWindow = GetWindow(SprWindowType.PlanWindow);
-            textWindow = GetWindow(SprWindowType.TextWindow);
+            Windows = new SprApplicationWindows(this);
         }
 
         /// <summary>
@@ -410,10 +440,10 @@ namespace SharpPlant.SharpPlantReview
 
             return null;
         }
-        private IntPtr? GetProcessId()
+        private IntPtr GetProcessId()
         {
             if (!IsConnected)
-                return null;
+                return IntPtr.Zero;
 
             uint procId;
             SprStatus = DrApi.ProcessIdGet(out procId);
@@ -501,15 +531,6 @@ namespace SharpPlant.SharpPlantReview
 
             return returnList;
         }
-        private SprWindow GetWindow(SprWindowType type)
-        {
-            if (!IsConnected)
-                throw SprExceptions.SprNotConnected;
-
-            if (type == SprWindowType.TextWindow)
-                return new SprTextWindow(this);
-            return new SprWindow(this, type);
-        }
 
         private void SetNextAnnotation(int annoId)
         {
@@ -561,7 +582,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void Activate()
         {
-            NativeWin32.SetForegroundWindow(ApplicationWindow.hWnd);
+            NativeWin32.SetForegroundWindow(Windows.ApplicationWindow.hWnd);
         }
 
         /// <summary>
@@ -888,94 +909,6 @@ namespace SharpPlant.SharpPlantReview
         }
         #endregion
 
-        #region Text Window
-
-        /// <summary>
-        ///     Clears the contents of the SmartPlant Review text window.
-        /// </summary>
-        public void TextWindow_Clear()
-        {
-            // Throw an exception if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Send a blank string to the application text window
-            SprStatus = DrApi.TextWindow(SprConstants.SprClearTextWindow, "Text View", string.Empty, 0);
-        }
-
-        /// <summary>
-        ///     Updates the contents of the SmartPlant Review text window.
-        /// </summary>
-        /// <param name="mainText">String to be displayed in the text window.</param>
-        public void TextWindow_Update(string mainText)
-        {
-            // Throw an exception if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Get the existing title
-            var existTitle = TextWindow_GetTitle();
-
-            // Set the text window without changing the title
-            TextWindow_Update(mainText, existTitle);
-        }
-
-        /// <summary>
-        ///     Updates the title and contents of the SmartPlant Review text window.
-        /// </summary>
-        /// <param name="mainText">String to be displayed in the text window.</param>
-        /// <param name="titleText">String to be displayed in the title.</param>
-        public void TextWindow_Update(string mainText, string titleText)
-        {
-            // Throw an exception if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Set the text window and title contents
-            SprStatus = DrApi.TextWindow(SprConstants.SprClearTextWindow, titleText, mainText, 0);
-        }
-
-        /// <summary>
-        ///     Gets the existing title string of the SmartPlant Review text window.
-        /// </summary>
-        /// <returns>The string containing the title string.</returns>
-        public string TextWindow_GetTitle()
-        {
-            // Throw an exception if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Create the params
-            var orgTitle = string.Empty;
-            var orgText = string.Empty;
-            int orgLength;
-
-            // Get the existing text window values
-            SprStatus = DrApi.TextWindowGet(ref orgTitle, out orgLength, ref orgText);
-
-            // Return the title, empty string if null
-            return orgTitle ?? (string.Empty);
-        }
-
-        /// <summary>
-        ///     Gets the existing contents of the SmartPlant Review text window.
-        /// </summary>
-        /// <returns>The string containing the text window contents.</returns>
-        public string TextWindow_GetText()
-        {
-            // Throw an exception if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-            // Params for retrieving SPR data
-            var orgTitle = string.Empty;
-            var orgText = string.Empty;
-            int orgLength;
-
-            // Get the existing text window values
-            SprStatus = DrApi.TextWindowGet(ref orgTitle, out orgLength, ref orgText);
-
-            // Set an empty string for null values
-            return orgText ?? (string.Empty);
-        }
-
-        #endregion
-
         #region Annotation
 
         /// <summary>
@@ -1044,7 +977,7 @@ namespace SharpPlant.SharpPlantReview
             // Exit if the object selection failed/canceled
             if (objId == 0)
             {
-                TextWindow_Update("Annotation placement canceled.");
+                Windows.TextWindow.Text = "Annotation placement canceled.";
                 return;
             }
 
@@ -1054,7 +987,7 @@ namespace SharpPlant.SharpPlantReview
             // Exit if the centerpoint selection failed/canceled
             if (centerPoint == null)
             {
-                TextWindow_Update("Annotation placement canceled.");
+                Windows.TextWindow.Text = "Annotation placement canceled.";
                 return;
             }
 
@@ -1085,7 +1018,8 @@ namespace SharpPlant.SharpPlantReview
             Annotations_Update(anno);
 
             // Update the text window
-            TextWindow_Update(anno.Text, string.Format("Annotation {0}", anno.Id));
+            Windows.TextWindow.Title = string.Format("Annotation {0}", anno.Id);
+            Windows.TextWindow.Text = anno.Text;
 
             // Update the main view
             SprStatus = DrApi.ViewUpdate(1);
@@ -1147,7 +1081,7 @@ namespace SharpPlant.SharpPlantReview
             if (annoId == 0) return null;
 
             // Set the annotation ID
-            anno.Id = annoId;
+            //anno.Id = annoId;
 
             // Get the associated object ID
             int assocId;
@@ -1485,12 +1419,8 @@ namespace SharpPlant.SharpPlantReview
             SprStatus = DrApi.ViewSetDbl(0, ref objViewdataDbl);
         }
 
-        //public void GotoLocation
-
         #endregion
 
         #endregion
-
-        
     }
 }

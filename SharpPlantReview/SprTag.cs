@@ -14,11 +14,12 @@ namespace SharpPlant.SharpPlantReview
     /// <summary>
     ///     Provides the properties for creating a tag in SmartPlant Review.
     /// </summary>
-    public class SprTag
+    public class SprTag : SprDbObject
     {
         #region Properties
 
-        public static DataRow DefaultRow
+        public override string PrimaryKey { get { return "tag_unique_id"; } }
+        public override DataRow DefaultRow
         {
             get
             {
@@ -40,25 +41,16 @@ namespace SharpPlant.SharpPlantReview
                 returnRow["computer_name"] = string.Empty;
                 returnRow["status"] = string.Empty;
 
+                DisplayLeader = true;
+                BackgroundColor = SprUtilities.From0Bgr(12632319);
+                LeaderColor = SprUtilities.From0Bgr(12632319);
+                Creator = Environment.GetEnvironmentVariable("USERNAME");
+                ComputerName = Environment.GetEnvironmentVariable("COMPUTERNAME");
+                Status = "Open";
+
                 return returnRow;
             }
         }
-
-        internal DataRow Row
-        {
-            get
-            {
-                if (row == null)
-                    row = GetTagRow();
-                return row;
-            }
-        }
-        private DataRow row;
-
-        /// <summary>
-        ///     The parent Application reference.
-        /// </summary>
-        public SprApplication Application { get; private set; }
 
         /// <summary>
         ///     Holds the tag bitmask values used for tag placement.
@@ -284,15 +276,6 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     Tag unique identification number.
-        /// </summary>
-        public int Id
-        {
-            get { return Convert.ToInt32(Row["tag_unique_id"]); }
-            private set { Row["tag_unique_id"] = value; }
-        }
-
-        /// <summary>
         ///     The object the tag is attached to, if any.
         /// </summary>
         public SprObject LinkedObject
@@ -314,44 +297,19 @@ namespace SharpPlant.SharpPlantReview
 
         #region Constructors
 
-        public SprTag()
+        public SprTag() : base()
         {
             IsPlaced = false;
-
-            Application = SprApplication.ActiveApplication;
-
-            row = SprTag.DefaultRow;
-
-            Id = 0;
-            DisplayLeader = true;
-            BackgroundColor = SprUtilities.From0Bgr(12632319);
-            LeaderColor = SprUtilities.From0Bgr(12632319);
-            Creator = Environment.GetEnvironmentVariable("USERNAME");
-            ComputerName = Environment.GetEnvironmentVariable("COMPUTERNAME");
-            Status = "Open";
         }
-        internal SprTag(DataRow tagRow)
+        internal SprTag(DataRow tagRow) : base()
         {
             IsPlaced = tagRow["date_placed"] != DBNull.Value;
-
-            Application = SprApplication.ActiveApplication;
-
-            row = tagRow;
         }
 
         #endregion
 
         #region Methods
         
-        private DataRow GetTagRow()
-        {
-            var result = Application.MdbDatabase.Tables["tag_data"].Rows.Find((object)Id);
-            if (result == null)
-                return SprTag.DefaultRow;
-
-            IsPlaced = true;
-            return result;
-        }
         private SprObject GetLinkedObject()
         {
             var searchString = string.Format("FIND linkages = {0}", Linkage.ToString());
@@ -414,7 +372,7 @@ namespace SharpPlant.SharpPlantReview
             var objId = Application.GetObjectId("SELECT NEW TAG START POINT", ref tagOrigin);
             if (objId == 0)
             {
-                Application.TextWindow_Update("Tag placement canceled.");
+                Application.Windows.TextWindow.Text = "Tag placement canceled.";
                 return;
             }
 
@@ -422,7 +380,7 @@ namespace SharpPlant.SharpPlantReview
             var tagLeader = Application.GetPoint("SELECT NEW LEADER LOCATION", tagOrigin);
             if (tagLeader == null)
             {
-                Application.TextWindow_Update("Tag placement canceled.");
+                Application.Windows.TextWindow.Text = "Tag placement canceled.";
                 return;
             }
 
@@ -485,7 +443,8 @@ namespace SharpPlant.SharpPlantReview
                 throw SprExceptions.SprNotConnected;
 
             // Update the text window with the tag information
-            Application.TextWindow_Update(Row["tag_text"].ToString(), string.Format("Tag {0}", Id));
+            Application.Windows.TextWindow.Title = string.Format("Tag {0}", Id);
+            Application.Windows.TextWindow.Text = Row["tag_text"].ToString();
 
             // Locate the desired tag on the main screen with the specified visibility
             Application.SprStatus = Application.DrApi.GotoTag(Id, 0, Convert.ToInt32(displayTag));
@@ -508,7 +467,7 @@ namespace SharpPlant.SharpPlantReview
             var objId = Application.GetObjectId("SELECT TAG START POINT", ref tagOrigin);
             if (objId == 0)
             {
-                Application.TextWindow_Update("Tag placement canceled.");
+                Application.Windows.TextWindow.Text = "Tag placement canceled.";
                 return;
             }
 
@@ -516,7 +475,7 @@ namespace SharpPlant.SharpPlantReview
             var tagLeader = Application.GetPoint("SELECT TAG LEADER LOCATION", tagOrigin);
             if (tagLeader == null)
             {
-                Application.TextWindow_Update("Tag placement canceled.");
+                Application.Windows.TextWindow.Text = "Tag placement canceled.";
                 return;
             }
 
@@ -541,23 +500,12 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     Loads the latest tag information from the MDB database.
-        /// </summary>
-        public void Refresh()
-        {
-            var updatedTable = DbMethods.GetDbTable(Application.MdbPath, Row.Table.TableName);
-            var updatedRow = updatedTable.Rows.Find((object)Id);
-            
-            row.ItemArray = updatedRow.ItemArray;
-            row.AcceptChanges();
-        }
-
-        /// <summary>
         ///     Updates the SmartPlant Review text window with the SprTag text.
         /// </summary>
         public void SendToTextWindow()
         {
-            Application.TextWindow_Update(Text, string.Format("Tag {0}", Id));
+            Application.Windows.TextWindow.Title = string.Format("Tag {0}", Id);
+            Application.Windows.TextWindow.Text = Text;
         }
 
         /// <summary>
@@ -606,15 +554,6 @@ namespace SharpPlant.SharpPlantReview
             File.Delete(Path.Combine(SprSnapShot.TempDirectory, "dbImage_temp"));
         }
 
-        /// <summary>
-        ///     Updates the MDB database with the current tag information.
-        /// </summary>
-        public void Update()
-        {
-            var filter = string.Format("tag_unique_id = {0}", Id);
-            DbMethods.UpdateDbTable(Application.MdbPath, filter, Row.Table);
-        }
-
-        #endregion
+        #endregion       
     }
 }

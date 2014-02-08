@@ -10,6 +10,8 @@ namespace SharpPlant.SharpPlantReview
     /// </summary>
     public class SprTextWindow : SprWindow
     {
+        #region Properties
+
         /// <summary>
         ///     The text currently shown in the window.
         /// </summary>
@@ -48,11 +50,19 @@ namespace SharpPlant.SharpPlantReview
         }
         private string title;
 
+        #endregion
+
+        #region Constructors
+
         internal SprTextWindow(SprApplication application) : base(application, SprWindowType.TextWindow)
         {
             text = GetText();
             title = GetTitle();
         }
+
+        #endregion
+
+        #region Methods
 
         private string GetText()
         {
@@ -103,5 +113,7 @@ namespace SharpPlant.SharpPlantReview
             // Send a blank string to the application text window
             Application.SprStatus = Application.DrApi.TextWindow(SprConstants.SprClearTextWindow, "Text View", string.Empty, 0);
         }
+
+        #endregion
     }
 }

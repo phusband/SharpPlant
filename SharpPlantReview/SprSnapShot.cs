@@ -18,7 +18,7 @@ namespace SharpPlant.SharpPlantReview
     /// </summary>
     public class SprSnapShot
     {
-        #region SnapShot Properties
+        #region Properties
 
         /// <summary>
         ///     The path to the temporary snapshot directory.
@@ -195,7 +195,8 @@ namespace SharpPlant.SharpPlantReview
 
         #endregion
 
-        // SnapShot initializer
+        #region Constructors
+
         public SprSnapShot()
         {
             // Link the parent application
@@ -212,11 +213,14 @@ namespace SharpPlant.SharpPlantReview
             }
 
             // Set the default size based on the main window 
-            if (Application.IsConnected) Height = Application.MainWindow.Height;
-            if (Application.IsConnected) Width = Application.MainWindow.Width;
+            if (Application.IsConnected) Height = Application.Windows.MainWindow.Height;
+            if (Application.IsConnected) Width = Application.Windows.MainWindow.Width;
         }
 
-        // Internal snapshot methods
+        #endregion
+
+        #region Methods
+
         internal static void FormatSnapshot(string imagePath, SprSnapshotFormat format)
         {
             // Get the saved image
@@ -287,5 +291,7 @@ namespace SharpPlant.SharpPlantReview
                 }
             }
         }
+
+        #endregion
     }
 }

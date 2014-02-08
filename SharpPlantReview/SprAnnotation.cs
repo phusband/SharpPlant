@@ -4,17 +4,21 @@
 //
 
 using System;
-using System.Drawing;
 using System.Collections.Generic;
+using System.Data;
+using System.Drawing;
 
 namespace SharpPlant.SharpPlantReview
 {
     /// <summary>
     ///     Provides the properties for controlling text annotations in SmartPlant Review.
     /// </summary>
-    public class SprAnnotation
+    public class SprAnnotation : SprDbObject
     {
-        #region Annotation Properties
+        #region Properties
+
+        public override string PrimaryKey { get { return "annotation_id"; } }
+
 
         /// <summary>
         ///     The active COM reference to the DrAnnotationDbl class
@@ -47,11 +51,6 @@ namespace SharpPlant.SharpPlantReview
                 Text = value.Text;
             }
         }
-
-        /// <summary>
-        ///     The parent Application reference.
-        /// </summary>
-        public SprApplication Application { get; private set; }
 
         /// <summary>
         ///     Annotation background color if visible (0BGR format).
@@ -215,15 +214,6 @@ namespace SharpPlant.SharpPlantReview
             get { return Data["text_string"].ToString(); }
             set { Data["text_string"] = value; }
         }
-
-        /// <summary>
-        ///     The session unique ID of the annotation.
-        /// </summary>
-        public int Id
-        {
-            get { return Convert.ToInt32(Data["id"]); }
-            internal set { Data["id"] = value; }
-        }
             
         /// <summary>
         ///     The object associated with the annotation.
@@ -260,7 +250,7 @@ namespace SharpPlant.SharpPlantReview
         public SprAnnotation()
         {
             // Link the parent application
-            Application = SprApplication.ActiveApplication;
+            //Application = SprApplication.ActiveApplication;
 
             // Create the backing Annotation object
             DrAnnotationDbl = Activator.CreateInstance(SprImportedTypes.DrAnnotationDbl);
@@ -275,7 +265,7 @@ namespace SharpPlant.SharpPlantReview
             Data = SprUtilities.AnnotationTemplate();
 
             // Set the tag to the next available tag number
-            Id = 0;
+            //Id = 0;
 
             // Set the default annotation type
             Type = "Standard";
@@ -285,5 +275,17 @@ namespace SharpPlant.SharpPlantReview
             LineColor = SprUtilities.From0Bgr(8454143);
             TextColor = SprUtilities.From0Bgr(0);
         }
+
+        public SprAnnotation(DataRow row)
+            : base()
+        { }
+
+
+        public override DataRow DefaultRow
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        
     }
 }

@@ -57,16 +57,22 @@ namespace SharpPlant.SharpPlantReview
 
         #endregion
 
-        // Constructors
+        #region Constructors
+
+        internal SprLinkage(dynamic drKey)
+        {
+            DrKey = drKey;
+        }
         public SprLinkage()
         {
-            DrKey = Activator.CreateInstance(SprImportedTypes.DrKey);
+            try { DrKey = Activator.CreateInstance(SprImportedTypes.DrKey); }
+            catch { throw SprExceptions.SprObjectCreateFail; }
         }
         public SprLinkage(string linkage) : this()
         {
             var links = linkage.Split(' ');
             if (links.Length != 4)
-                throw new SprException("This link is bullshit.");
+                throw new SprException("This linkage '{0}' is not a valid format", linkage);
 
             Id1 = Int32.Parse(links[0]);
             Id2 = Int32.Parse(links[1]);
@@ -80,10 +86,10 @@ namespace SharpPlant.SharpPlantReview
             Id3 = link3;
             Id4 = link4;
         }
-        public SprLinkage(dynamic drKey)
-        {
-            DrKey = drKey;
-        }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         ///     Returns a string representing the linkage values.
@@ -92,5 +98,7 @@ namespace SharpPlant.SharpPlantReview
         {
             return string.Format("{0} {1} {2} {3}", Id1, Id2, Id3, Id4);
         }
+
+        #endregion
     }
 }

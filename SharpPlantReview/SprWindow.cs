@@ -107,7 +107,8 @@ namespace SharpPlant.SharpPlantReview
 
         #endregion
 
-        // SPRWindow initializer
+        #region Constructors
+
         internal SprWindow(SprApplication application, SprWindowType type)
         {
             Application = application;
@@ -119,6 +120,10 @@ namespace SharpPlant.SharpPlantReview
 
             Refresh();
         }
+
+        #endregion
+
+        #region Methods
 
         private void Refresh()
         {
@@ -132,6 +137,6 @@ namespace SharpPlant.SharpPlantReview
             Application.SprStatus = Application.DrApi.WindowSet((int)Type, DrWindow);
         }
 
-        
+        #endregion
     }
 }
