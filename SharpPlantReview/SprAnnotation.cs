@@ -17,9 +17,6 @@ namespace SharpPlant.SharpPlantReview
     {
         #region Properties
 
-        public override string PrimaryKey { get { return "annotation_id"; } }
-
-
         /// <summary>
         ///     The active COM reference to the DrAnnotationDbl class
         /// </summary>
@@ -57,8 +54,12 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public Color BackgroundColor
         {
-            get { return SprUtilities.From0Bgr((int) Data["bg_color"]); }
-            set { Data["bg_color"] = SprUtilities.Get0Bgr(value); }
+            get { return SprUtilities.From0Bgr((int)Data["bg_color"]); }
+            set
+            { 
+                Data["bg_color"] = SprUtilities.Get0Bgr(value);
+                if (DrAnnotationDbl != null) DrAnnotationDbl.BackgroundColor = Data["bg_color"];
+            }
         }
 
         /// <summary>
@@ -66,7 +67,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public Color LineColor
         {
-            get { return SprUtilities.From0Bgr((int) Data["line_color"]); }
+            get { return SprUtilities.From0Bgr((int)Data["line_color"]); }
             set
             {
                 Data["line_color"] = SprUtilities.Get0Bgr(value);
@@ -95,6 +96,8 @@ namespace SharpPlant.SharpPlantReview
             get
             {
                 if (!IsPlaced) return new SprPoint3D(0, 0, 0);
+                //return 
+
                 return new SprPoint3D(Convert.ToDouble(Data["center_x"]),
                                       Convert.ToDouble(Data["center_y"]),
                                       Convert.ToDouble(Data["center_z"]));
@@ -150,7 +153,11 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     Holds the tag bitmask values used for annotation placement.
         /// </summary>
-        internal int Flags { get; set; }
+        internal int Flags
+        {
+            get { return DrAnnotationDbl.Flags; }
+            set { DrAnnotationDbl.Flags = value; }
+        }
 
         /// <summary>
         ///     Indicates whether an arrowhead will be present.
@@ -211,26 +218,26 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string Text
         {
-            get { return Data["text_string"].ToString(); }
-            set { Data["text_string"] = value; }
+            get { return Row["text_string"].ToString(); }
+            set { Row["text_string"] = value; }
         }
             
         /// <summary>
         ///     The object associated with the annotation.
         /// </summary>
-        public SprObject AssociatedObject
-        {
-            get
-            {
-                try { return Application.GetObjectData(Convert.ToInt32(Data["object_id"])); }
-                catch (KeyNotFoundException) { return null; }
-            }
-            internal set
-            {
-                try { Data["object_id"] = value.Id; }
-                catch (KeyNotFoundException) { }
-            }
-        }
+        //public SprObject AssociatedObject
+        //{
+        //    get
+        //    {
+        //        try { return Application.GetObjectData(Convert.ToInt32(Data["object_id"])); }
+        //        catch (KeyNotFoundException) { return null; }
+        //    }
+        //    internal set
+        //    {
+        //        try { Data["object_id"] = value.Id; }
+        //        catch (KeyNotFoundException) { }
+        //    }
+        //}
 
         /// <summary>
         ///     Annotation type.
@@ -246,46 +253,197 @@ namespace SharpPlant.SharpPlantReview
 
         #endregion
 
-        // Annotation constructor
-        public SprAnnotation()
-        {
-            // Link the parent application
-            //Application = SprApplication.ActiveApplication;
+        #region Constructors
 
+        public SprAnnotation() : base()
+        {
             // Create the backing Annotation object
             DrAnnotationDbl = Activator.CreateInstance(SprImportedTypes.DrAnnotationDbl);
 
-            // Set as not placed by default
             IsPlaced = false;
-
-            // Set the default flags
-            Flags |= SprConstants.SprAnnoLeader | SprConstants.SprAnnoBackground;
-
-            // Create a new data dictionary from the template
-            Data = SprUtilities.AnnotationTemplate();
-
-            // Set the tag to the next available tag number
-            //Id = 0;
-
-            // Set the default annotation type
+            DisplayLeader = true;
+            DisplayBackground = true;
             Type = "Standard";
-
-            // Set the default colors
-            BackgroundColor = SprUtilities.From0Bgr(8454143);
-            LineColor = SprUtilities.From0Bgr(8454143);
-            TextColor = SprUtilities.From0Bgr(0);
         }
-
-        public SprAnnotation(DataRow row)
-            : base()
-        { }
-
-
-        public override DataRow DefaultRow
+        public SprAnnotation(DataRow dataRow) : base(dataRow)
         {
-            get { throw new NotImplementedException(); }
+            // Create the backing Annotation object
+            DrAnnotationDbl = Activator.CreateInstance(SprImportedTypes.DrAnnotationDbl);
+
+            IsPlaced = dataRow["date_placed"] != DBNull.Value;
+            DisplayLeader = (Convert.ToDouble(Row["leader_x"]) != 0); // Or something
         }
 
-        
+        #endregion
+
+        #region Methods
+
+        protected override DataRow GetDefaultRow()
+        {
+            var annoTable = SprApplication.ActiveApplication.MdbDatabase.Tables["text_annotations"];
+            var annoRow = annoTable.NewRow();
+            annoRow["id"] = 0;
+            annoRow["type_id"] = 0;
+            annoRow["bg_color"] = 12632319;
+            annoRow["line_color"] = 12632319;
+            annoRow["text_color"] = 0;
+            annoRow["text_string"] = string.Empty;
+
+            return annoRow;
+        }
+        private Image GetImage()
+        {
+            return null;
+        }
+        private SprPoint3D GetCenterPoint()
+        {
+            return null;
+        }
+        private SprPoint3D GetLeaderPoint()
+        {
+            return null;
+        }
+
+
+        /// <summary>
+        ///     Prompts a user to select new leader points for an existing annotation.
+        ///     DisplayLeader will automatically be set to true.
+        /// </summary>
+        ///TODO
+        public void EditLeader()
+        {
+            if (!Application.IsConnected)
+                throw SprExceptions.SprNotConnected;
+
+            if (!IsPlaced)
+                throw new SprException("Annotation {0} is not placed.", Id);
+
+            var annoOrigin = new SprPoint3D();
+
+            // Get an object on screen and set the origin point to its location
+            var objId = Application.GetObjectId("SELECT NEW ANNOTATION START POINT", ref annoOrigin);
+            if (objId == 0)
+            {
+                Application.Windows.TextWindow.Text = "Annotation placement canceled.";
+                return;
+            }
+
+            // Get the annotation leader point on screen
+            var annoLeader = Application.GetPoint("SELECT NEW LEADER LOCATION", annoOrigin);
+            if (annoLeader == null)
+            {
+                Application.Windows.TextWindow.Text = "Tag placement canceled.";
+                return;
+            }
+
+            var curObject = Application.GetObjectData(objId);
+
+            DisplayLeader = true;
+            Flags |= SprConstants.SprTagLabel;
+            Flags |= SprConstants.SprTagEdit;
+
+            // Update the tag with the new leader points
+            Application.SprStatus = Application.DrApi.TagSetDbl(Id, 0, Flags, annoLeader.DrPointDbl,
+                                                annoOrigin.DrPointDbl, curObject.Linkage.DrKey, Text);
+
+            //Refresh();
+
+            //// Flip the tag 180 degrees.  Intergraph is AWESOME!
+            //var swap = LeaderPoint;
+            //LeaderPoint = OriginPoint;
+            //OriginPoint = swap;
+
+            Update();
+
+            SendToTextWindow();
+            //Application.SprStatus = Application.DrApi.ViewUpdate(1);
+            Application.Run(SprNativeMethods.ViewUpdate, 1);
+        }
+
+
+        /// <summary>
+        ///     Prompts a user to place the current annotation.
+        /// </summary>
+        /// TODO
+        public void Place()
+        {
+            if (!Application.IsConnected)
+                throw SprExceptions.SprNotConnected;
+
+            if (IsPlaced)
+                throw new SprException("Annotation {0} is already placed", Id);
+
+            var leaderPoint = new SprPoint3D();
+
+            // Get the annotation leader point
+            int objId = Application.GetObjectId("SELECT A POINT ON AN OBJECT TO LOCATE THE ANNOTATION", ref leaderPoint);
+            if (objId == 0)
+            {
+                Application.Windows.TextWindow.Text = "Annotation placement canceled.";
+                return;
+            }
+
+            // Get the annotation center point using the leaderpoint for depth calculation
+            var centerPoint = Application.GetPoint("SELECT THE CENTER POINT FOR THE ANNOTATION LABEL", leaderPoint);
+            if (centerPoint == null)
+            {
+                Application.Windows.TextWindow.Text = "Annotation placement canceled.";
+                return;
+            }
+
+            // Set the annotation points
+            LeaderPoint = leaderPoint;
+            CenterPoint = centerPoint;
+
+            // Place the annotation on screen
+            var annoId = default(uint);
+            //Application.SprStatus = Application.DrApi.AnnotationCreateDbl(Type, ref DrAnnotationDbl, out Id);
+            var result = Application.Run(SprNativeMethods.AnnotationCreateDbl, Type, DrAnnotationDbl, annoId);
+            annoId = Convert.ToInt32(result[2]);
+
+            // Link the located object to the annotation
+            //SprStatus = DrApi.AnnotationDataSet(annoId, anno.Type, ref drAnno, ref objId);
+            result = Application.Run(SprNativeMethods.AnnotationDataSet, Type, DrAnnotationDbl, annoId);
+
+            Refresh();
+            // Retrieve the placed annotation data
+            //anno = Annotations_Get(anno.Id);
+
+            // Add an ObjectId field
+            //Annotations_AddDataField("object_id");
+
+            // Save the ObjectId to the annotation data
+            //anno.Data["object_id"] = objId;
+
+            // Update the annotation
+            //Annotations_Update(anno);
+
+            // Update the text window
+            Application.Windows.TextWindow.Title = string.Format("Annotation {0}", Id);
+            Application.Windows.TextWindow.Text = Text;
+
+            // Update the main view
+            Application.SprStatus = Application.DrApi.ViewUpdate(1);
+
+        }
+
+        /// <summary>
+        ///     Updates the SmartPlant Review text window with the SprAnnotation text.
+        /// </summary>
+        public void SendToTextWindow()
+        {
+            Application.Windows.TextWindow.Title = string.Format("Tag {0}", Id);
+            Application.Windows.TextWindow.Text = Text;
+        }
+
+        /// <summary>
+        ///     Converts the current annotation to a string representation.
+        /// </summary>
+        public override string ToString()
+        {
+            return string.Format("Annotation {0}: {1}", Id, Text);
+        }
+
+        #endregion
     }
 }

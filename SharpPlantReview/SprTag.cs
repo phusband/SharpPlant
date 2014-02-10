@@ -18,40 +18,6 @@ namespace SharpPlant.SharpPlantReview
     {
         #region Properties
 
-        public override string PrimaryKey { get { return "tag_unique_id"; } }
-        public override DataRow DefaultRow
-        {
-            get
-            {
-                var tagTable = SprApplication.ActiveApplication.MdbDatabase.Tables["tag_data"];
-                var returnRow = tagTable.NewRow();
-
-                returnRow["tag_unique_id"] = 0;
-                returnRow["tag_size"] = 0;
-                returnRow["linkage_id_0"] = 0;
-                returnRow["linkage_id_1"] = 0;
-                returnRow["linkage_id_2"] = 0;
-                returnRow["linkage_id_3"] = 0;
-                returnRow["tag_text"] = string.Empty;
-                returnRow["number_color"] = 0;
-                returnRow["backgnd_color"] = 0;
-                returnRow["leader_color"] = 0;
-                returnRow["discipline"] = string.Empty;
-                returnRow["creator"] = string.Empty;
-                returnRow["computer_name"] = string.Empty;
-                returnRow["status"] = string.Empty;
-
-                DisplayLeader = true;
-                BackgroundColor = SprUtilities.From0Bgr(12632319);
-                LeaderColor = SprUtilities.From0Bgr(12632319);
-                Creator = Environment.GetEnvironmentVariable("USERNAME");
-                ComputerName = Environment.GetEnvironmentVariable("COMPUTERNAME");
-                Status = "Open";
-
-                return returnRow;
-            }
-        }
-
         /// <summary>
         ///     Holds the tag bitmask values used for tag placement.
         /// </summary>
@@ -82,42 +48,20 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public SprPoint3D OriginPoint
         {
-            get
-            {
-                if (!IsPlaced) return new SprPoint3D(0, 0, 0);
-                return new SprPoint3D(Convert.ToDouble(Row["tag_origin_x"]),
-                                      Convert.ToDouble(Row["tag_origin_y"]),
-                                      Convert.ToDouble(Row["tag_origin_z"]));
-            }
-            set
-            {
-                if (!IsPlaced) return;
-                Row["tag_origin_x"] = value.East;
-                Row["tag_origin_y"] = value.North;
-                Row["tag_origin_z"] = value.Elevation;
-            }
+            get { return originPoint ?? (originPoint = GetOriginPoint()); }
+            set { SetOriginPoint(value); }
         }
+        private SprPoint3D originPoint;
 
         /// <summary>
         ///     Point for the end of the leader.  If the tag has not been placed, the point coordinates will be 0, 0, 0.
         /// </summary>
         public SprPoint3D LeaderPoint
         {
-            get
-            {
-                if (!IsPlaced) return new SprPoint3D(0, 0, 0);
-                return new SprPoint3D(Convert.ToDouble(Row["tag_point_x"]),
-                                      Convert.ToDouble(Row["tag_point_y"]),
-                                      Convert.ToDouble(Row["tag_point_z"]));
-            }
-            set
-            {
-                if (!IsPlaced) return;
-                Row["tag_point_x"] = value.East;
-                Row["tag_point_y"] = value.North;
-                Row["tag_point_z"] = value.Elevation;
-            }
+            get { return leaderPoint ?? (leaderPoint = GetLeaderPoint()); }
+            set { SetLeaderPoint(value); }
         }
+        private SprPoint3D leaderPoint;
 
         /// <summary>
         ///     Tag text.
@@ -241,14 +185,9 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public Image Image
         {
-            get 
-            {
-                if (!HasImage)
-                    return null;
-
-                return DbMethods.GetDbImage(Row["tag_image"]);
-            }
+            get { return image ?? (image = GetImage()); }
         }
+        private Image image;
 
         /// <summary>
         ///     Determines if the tag has labels linked to the MDB2
@@ -280,16 +219,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public SprObject LinkedObject
         {
-            get
-            {
-                if (!IsDataLinked)
-                    return null;
-
-                if (linkedObject == null)
-                    linkedObject = GetLinkedObject();
-
-                return linkedObject;
-            }
+            get { return linkedObject ?? (linkedObject = GetLinkedObject()); }
         }
         private SprObject linkedObject;
 
@@ -300,18 +230,52 @@ namespace SharpPlant.SharpPlantReview
         public SprTag() : base()
         {
             IsPlaced = false;
+            DisplayLeader = true;
         }
-        internal SprTag(DataRow tagRow) : base()
+        public SprTag(DataRow dataRow) : base(dataRow)
         {
-            IsPlaced = tagRow["date_placed"] != DBNull.Value;
+            IsPlaced = dataRow["date_placed"] != DBNull.Value;
+            DisplayLeader = (Convert.ToDouble(Row["tag_point_x"]) != 0); // Or something
         }
 
         #endregion
 
         #region Methods
-        
+
+        // Getter Methods
+        protected override DataRow GetDefaultRow()
+        {
+            var tagTable = SprApplication.ActiveApplication.Tags.Table;
+            var tagRow = tagTable.NewRow();
+            tagRow["tag_unique_id"] = 0;
+            tagRow["tag_size"] = 0;
+            tagRow["linkage_id_0"] = 0;
+            tagRow["linkage_id_1"] = 0;
+            tagRow["linkage_id_2"] = 0;
+            tagRow["linkage_id_3"] = 0;
+            tagRow["tag_text"] = string.Empty;
+            tagRow["number_color"] = 0;
+            tagRow["backgnd_color"] = 12632319;
+            tagRow["leader_color"] = 12632319;
+            tagRow["discipline"] = string.Empty;
+            tagRow["creator"] = Environment.GetEnvironmentVariable("USERNAME");
+            tagRow["computer_name"] = Environment.GetEnvironmentVariable("COMPUTERNAME");
+            tagRow["status"] = "Open";
+
+            return tagRow;
+        }
+        private Image GetImage()
+        {
+            if (!HasImage)
+                return null;
+
+            return DbMethods.GetDbImage(Row["tag_image"]);
+        }
         private SprObject GetLinkedObject()
         {
+            if (!IsDataLinked)
+                return null;
+
             var searchString = string.Format("FIND linkages = {0}", Linkage.ToString());
             var objIds = Application.ObjectDataSearch(searchString);
             if (objIds.Count > 1)
@@ -330,8 +294,48 @@ namespace SharpPlant.SharpPlantReview
             if (objIds.Count == 0)
                 return null;
             else if (objIds.Count > 1)
-                throw new SprException("Multiple objects found for linkage " + Linkage.ToString());
+                throw new SprException("Multiple objects found for linkage {0}", Linkage);
             return Application.GetObjectData(objIds[0]);
+        }
+        private SprPoint3D GetLeaderPoint()
+        {
+            if (!IsPlaced)
+                return null;
+
+            return new SprPoint3D(Convert.ToDouble(Row["tag_point_x"]),
+                                  Convert.ToDouble(Row["tag_point_y"]),
+                                  Convert.ToDouble(Row["tag_point_z"]));
+        }
+        private SprPoint3D GetOriginPoint()
+        {
+            if (!IsPlaced)
+                return null;
+
+            return new SprPoint3D(Convert.ToDouble(Row["tag_origin_x"]),
+                                  Convert.ToDouble(Row["tag_origin_y"]),
+                                  Convert.ToDouble(Row["tag_origin_z"]));
+        }
+
+        // Setter Methods
+        private void SetLeaderPoint(SprPoint3D newpoint)
+        {
+            if (!IsPlaced)
+                throw SprExceptions.SprTagNotPlaced;
+
+            leaderPoint = newpoint;
+            Row["tag_origin_x"] = newpoint.East;
+            Row["tag_origin_y"] = newpoint.North;
+            Row["tag_origin_z"] = newpoint.Elevation;
+        }
+        private void SetOriginPoint(SprPoint3D newpoint)
+        {
+            if (!IsPlaced)
+                throw SprExceptions.SprTagNotPlaced;
+
+            originPoint = newpoint;
+            Row["tag_origin_x"] = newpoint.East;
+            Row["tag_origin_y"] = newpoint.North;
+            Row["tag_origin_z"] = newpoint.Elevation;
         }
 
         /// <summary>
@@ -417,9 +421,11 @@ namespace SharpPlant.SharpPlantReview
             if (!HasImage)
                 throw new SprException("No snapshot exists for the current image");
 
+            // Strip off the extension
             if (Path.HasExtension(imagePath))
                 imagePath = imagePath.Substring(0, imagePath.LastIndexOf('.'));
 
+            // Get the image encoding
             if (Image.RawFormat.Equals(ImageFormat.Jpeg))
                 imagePath += ".jpg";
             else if (Image.RawFormat.Equals(ImageFormat.Png))
@@ -517,27 +523,14 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     Converts the current tag to a string representation using the specified format.
-        /// </summary>
-        public string ToString(string format)
-        {
-            if (format == string.Empty)
-                return ToString();
-            else
-                return string.Format(format, Row.ItemArray);
-        }
-
-        /// <summary>
         ///     Saves a snapshot of the current SprApplication main view to the MDB database.
         /// </summary>
         /// <param name="snapShot">The snapshot format the image will be created with.</param>
         /// <param name="ZoomToTag">Determines if the main view zooms to the tag in the main SmartPlant screen.</param>
         public void TakeSnapshot(bool ZoomToTag, SprSnapShot snapShot = null)
         {
-            if (!DbMethods.AddDbField(Application.MdbPath, "tag_data", "tag_image", "OLEOBJECT"))
-                throw new SprException("Error creating tag image field in MDB database");
-
-            Refresh();
+            if (!Row.Table.Columns.Contains("tag_image"))
+                Application.Tags.AddDataField("tag_image", "OLEOBJECT");
 
             if (ZoomToTag)
                 Goto();
@@ -554,6 +547,6 @@ namespace SharpPlant.SharpPlantReview
             File.Delete(Path.Combine(SprSnapShot.TempDirectory, "dbImage_temp"));
         }
 
-        #endregion       
+        #endregion
     }
 }

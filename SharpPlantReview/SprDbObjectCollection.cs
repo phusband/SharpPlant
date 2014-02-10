@@ -37,15 +37,10 @@ namespace SharpPlant.SharpPlantReview
         
         internal DataTable Table
         {
-            get
-            {
-                return table ?? (table = Application.MdbDatabase.Tables[TableName]);
-            }
+            get { return table ?? (table = GetTable()); }
             set { table = value; }
         }
         private DataTable table;
-
-        public abstract string TableName { get; }
 
         public T this[int index]
         {
@@ -84,13 +79,15 @@ namespace SharpPlant.SharpPlantReview
 
         #region Methods
 
+        protected abstract DataTable GetTable();
+
         protected void Refresh()
         {
             Clear();
-            var updatedTable = DbMethods.GetDbTable(Application.MdbPath, TableName);
+            var updatedTable = DbMethods.GetDbTable(Application.MdbPath, Table.TableName);
 
             if (updatedTable == null)
-                throw new SprException("Could not access MDB table {0}.", TableName);
+                throw new SprException("Could not access MDB table {0}.", Table.TableName);
 
             foreach (DataRow objRow in updatedTable.Rows)
             {
@@ -102,7 +99,7 @@ namespace SharpPlant.SharpPlantReview
         protected void Update()
         {
             if (!DbMethods.UpdateDbTable(Application.MdbPath, Table))
-                throw new SprException("Error updating Mdb table {0}", TableName);
+                throw new SprException("Error updating Mdb table {0}", Table.TableName);
         }
 
         /// <summary>
@@ -122,6 +119,22 @@ namespace SharpPlant.SharpPlantReview
             else
                 throw new SprException("A {0} with Id: {1} already exists in {2}",
                                        item.GetType().ToString(), item.Id, Application.MdbPath);
+        }
+
+        /// <summary>
+        ///     Creates a new data field in the Mdb table.
+        /// </summary>
+        /// <param name="fieldName">The string name of the field to be added.  Spaces in the field name are replaced.</param>
+        public virtual void AddDataField(string fieldName, string typeName = "TEXT(255)")
+        {
+            DbMethods.AddDbField(Application.MdbPath, Table.TableName, typeName, typeName);
+
+            Application.MdbDatabase = null;
+            Table = null;
+            Refresh();
+            
+            // Add the tag field to the MDB database
+            //return DbMethods.AddDbField(MdbPath, "tag_data", fieldName);
         }
 
         /// <summary>

@@ -4,7 +4,6 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Windows.Forms;
 
@@ -13,8 +12,6 @@ namespace SharpPlant.SharpPlantReview
     public class SprTagCollection : SprDbObjectCollection<SprTag>
     {
         #region Properties
-
-        public override string TableName { get { return "tag_data"; } }
 
         public SprTagVisibility Visibility
         {
@@ -41,20 +38,10 @@ namespace SharpPlant.SharpPlantReview
 
         #region Methods
 
-        /// <summary>
-        ///     Creates a new data field in the Mdb tag_data table.
-        ///     Returns true if the field already exists.
-        /// </summary>
-        /// <param name="fieldName">The string name of the field to be added.  Spaces in the field name are replaced.</param>
-        /// <returns>Indicates the success or failure of the table modification.</returns>
-        //public bool Tags_AddDataField(string fieldName)
-        //{
-        //    // Throw an exception if not connected
-        //    if (!IsConnected) throw SprExceptions.SprNotConnected;
-
-        //    // Add the tag field to the MDB database
-        //    return DbMethods.AddDbField(MdbPath, "tag_data", fieldName);
-        //}
+        protected override DataTable GetTable()
+        {
+            return Application.Tags.Table;
+        }
 
         /// <summary>
         ///     Sets the application tag visibility state.

@@ -4,6 +4,7 @@
 //
 
 using System;
+using System.Data;
 using System.Windows.Forms;
 
 namespace SharpPlant.SharpPlantReview
@@ -12,12 +13,7 @@ namespace SharpPlant.SharpPlantReview
     {
         #region Properties
 
-        public override string TableName
-        {
-            get { return "text_annotations"; }
-        }
-
-        public SprTagVisibility Visibility
+        public bool Visibility
         {
             get { return visibility; }
             set
@@ -26,39 +22,53 @@ namespace SharpPlant.SharpPlantReview
                 visibility = value;
             }
         }
-        private SprTagVisibility visibility;
+        private bool visibility;
 
         #endregion
 
-        #region Constructors 
+        #region Constructors
 
         internal SprAnnotationCollection() : this(SprApplication.ActiveApplication) { }
         internal SprAnnotationCollection(SprApplication application) : base(application)
         {
-            SetVisibility(SprTagVisibility.None);
+            SetVisibility(false);
         }
 
         #endregion
 
         #region Methods
 
+        protected override DataTable GetTable()
+        {
+            return Application.Annotations.Table;
+        }
+
         /// <summary>
         ///     Sets the application annotation visibility state.
         /// </summary>
-        /// <param name="state"></param>
-        public void SetVisibility(SprTagVisibility state)
+        public void SetVisibility(bool visible)
         {
             if (!Application.IsConnected)
                 throw SprExceptions.SprNotConnected;
 
-            Application.Windows.TextWindow.Clear();
-            Application.Activate();
+            var visState = Convert.ToInt32(visible);
 
-            // Get the menu alias character from the enumerator
-            var alias = Char.ConvertFromUtf32((int)state);
+            // Create the view object
+            dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
 
-            // Set the annotation visibility
-            SendKeys.SendWait(string.Format("%GS{0}", alias));
+            // Set the view object as the SPR Application main view
+            Application SprStatus = Application.DrApi.ViewGetDbl(0, ref objViewdataDbl);
+
+            // Apply the updated annotation display
+            objViewdataDbl.AllAnnotationsDisplay = visState;
+
+            // Update the global annotation visibility properties
+            Application.SprStatus = Application.DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDisplay, visState);
+            Application.SprStatus = Application.DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoTextDisplay, visState);
+            Application.SprStatus = Application.DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDataDisplay, visState);
+
+            // Update the main view in SPR
+            Application.SprStatus = Application.DrApi.ViewSetDbl(0, ref objViewdataDbl);
         }
 
         #endregion

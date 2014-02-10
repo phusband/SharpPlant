@@ -12,6 +12,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using System.Reflection;
 
 namespace SharpPlant.SharpPlantReview
 {
@@ -164,17 +165,22 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     The active session database.
         /// </summary>
-        internal DataSet MdbDatabase
+        public DataSet MdbDatabase
         {
-            get
-            {
-                if (mdbDatabase == null)
-                    mdbDatabase = GetMdbDatabase();
-                return mdbDatabase;
-            }
-            set { mdbDatabase = value; }
+            get { return mdbDatabase ?? (mdbDatabase = GetMdbDatabase()); }
+            internal set { mdbDatabase = value; }
         }
         private DataSet mdbDatabase;
+
+        /// <summary>
+        ///     The SprAnnotation collection from the current MDB database.
+        /// </summary>
+        public SprAnnotationCollection Annotations
+        {
+            get { return annotations ?? (annotations = new SprAnnotationCollection(this)); }
+            set { annotations = value; }
+        }
+        private SprAnnotationCollection annotations;
 
         /// <summary>
         ///     The default properties used when an SprSnapshot is omitted from snapshot methods.
@@ -186,12 +192,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public List<string> DesignFiles
         {
-            get
-            {
-                if (designFiles == null)
-                    designFiles = GetDesignFiles();
-                return designFiles;
-            }
+            get { return designFiles ?? (designFiles = GetDesignFiles()); }
         }
         private List<string> designFiles;
 
@@ -222,12 +223,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string MdbPath
         {
-            get
-            {
-                if (mdbPath == null)
-                    mdbPath = GetMdbPath();
-                return mdbPath;
-            }
+            get { return mdbPath ?? (mdbPath = GetMdbPath()); }
         }
         private string mdbPath;
 
@@ -239,7 +235,7 @@ namespace SharpPlant.SharpPlantReview
             get
             {
                 if (nextAnnotation == 0)
-                    nextAnnotation = GetNextAnnotation();
+                    nextTag = GetNextAnnotation();
                 return nextAnnotation;
             }
             set 
@@ -288,12 +284,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string SessionName
         {
-            get
-            {
-                if (sessionName == null)
-                    sessionName = GetSessionName();
-                return sessionName;
-            }
+            get { return sessionName ?? (sessionName = GetSessionName()); }
         }
         private string sessionName;
 
@@ -314,16 +305,11 @@ namespace SharpPlant.SharpPlantReview
         private int sprStatus;
 
         /// <summary>
-        ///     The SprTags from the current MDB database.
+        ///     The SprTag collection from the current MDB database.
         /// </summary>
         public SprTagCollection Tags
         {
-            get
-            {
-                if (tags == null)
-                    tags = new SprTagCollection(this);
-                return tags;
-            }
+            get { return tags ?? (tags = new SprTagCollection(this)); }
             set { tags = value; }
         }
         private SprTagCollection tags;
@@ -410,10 +396,13 @@ namespace SharpPlant.SharpPlantReview
             string sessionName = null;
 
             // Set the DrApi global options to return the file name
-            SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
-
+            //SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
+            GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
+            
             // Get the session file name
-            SprStatus = DrApi.FileNameFromNumber(0, ref sessionName);
+            //SprStatus = DrApi.FileNameFromNumber(0, ref sessionName);
+            var result = Run(SprNativeMethods.FileNameFromNumber, 0, sessionName);
+            sessionName = (string)result[1];
 
             return sessionName;
         }
@@ -427,13 +416,18 @@ namespace SharpPlant.SharpPlantReview
             var mdbName = string.Empty;
 
             // Set the DrApi global options to return the file name
-            SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
+            //SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
+            GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
 
             // MDB Name
-            SprStatus = DrApi.FileNameFromNumber(1, ref mdbName);
-
+            //SprStatus = DrApi.FileNameFromNumber(1, ref mdbName);
+            var result = Run(SprNativeMethods.FileNameFromNumber, 1, mdbName);
+            mdbName = (string)result[1];
+            
             // MDB Directory
-            SprStatus = DrApi.FilePathFromNumber(1, ref dirPath);
+            //SprStatus = DrApi.FilePathFromNumber(1, ref dirPath);
+            result = Run(SprNativeMethods.FilePathFromNumber, 1, dirPath);
+            dirPath = (string)result[1];
 
             if (dirPath != null && mdbName != null)
                 return Path.Combine(dirPath, mdbName);
@@ -445,10 +439,11 @@ namespace SharpPlant.SharpPlantReview
             if (!IsConnected)
                 return IntPtr.Zero;
 
-            uint procId;
-            SprStatus = DrApi.ProcessIdGet(out procId);
+            var procId = default(uint);
+            //SprStatus = DrApi.ProcessIdGet(out procId);
+            var result = Run(SprNativeMethods.ProcessIdGet, procId);
 
-            return (IntPtr)procId;
+            return (IntPtr)result[0];
         }
         private bool CheckIsBusy()
         {
@@ -467,24 +462,18 @@ namespace SharpPlant.SharpPlantReview
         }
         private int GetNextAnnotation()
         {
-            if (!IsConnected)
-                throw SprExceptions.SprNotConnected;
-
             // Get the next annotation number
             var siteTable = MdbDatabase.Tables["site_table"];
-            
             return (int)siteTable.Rows[0]["next_text_anno_id"];
         }
         private int GetNextTag()
         {
-            if (!IsConnected)
-                throw SprExceptions.SprNotConnected;
-
             // Get the next tag number
-            int returnTag;
-            SprStatus = DrApi.TagNextNumber(out returnTag, 0);
+            var returnTag = default(uint);
+            //SprStatus = DrApi.TagNextNumber(out returnTag, 0);
+            var result = Run(SprNativeMethods.TagNextNumber, returnTag);
 
-            return returnTag;
+            return Convert.ToInt32(result[0]);
         }
         private string GetVersion()
         {
@@ -494,9 +483,10 @@ namespace SharpPlant.SharpPlantReview
             string vers = null;
 
             // Get the version of the SPR Application
-            SprStatus = DrApi.Version(ref vers);
+            //SprStatus = DrApi.Version(ref vers);
+            var result = Run(SprNativeMethods.Version, vers);
 
-            return vers;
+            return (string)result[0];
         }
         private DataSet GetMdbDatabase()
         {
@@ -514,8 +504,10 @@ namespace SharpPlant.SharpPlantReview
         {
             GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 0);
 
-            int fileCount;
-            SprStatus = DrApi.FileCountGet(out fileCount);
+            var fileCount = default(uint);
+            //SprStatus = DrApi.FileCountGet(out fileCount);
+            var result = Run(SprNativeMethods.FileCountGet, fileCount);
+            fileCount = Convert.ToUInt32(result[0]);
 
             var returnList = new List<string>();
 
@@ -569,6 +561,20 @@ namespace SharpPlant.SharpPlantReview
                 siteTable.Rows[0]["next_tag_id"] = 1;
 
             DbMethods.UpdateDbTable(MdbPath, siteTable);
+        }
+
+        /// <summary>
+        ///     Runs the specified DrApi method through the active AprApplication.
+        /// </summary>
+        /// <param name="method">The SprNativeMethod to invoke.</param>
+        /// <param name="args">The arguments passed to the method.</param>
+        /// <returns>The object array returned from the method.</returns>
+        public object[] Run(SprNativeMethods method, params object[] args)
+        {
+            SprStatus =  DrApi.InvokeMember(method.ToString(), BindingFlags.InvokeMethod | BindingFlags.Public,
+                                           null, null, args);
+
+            return args;
         }
 
         #endregion
@@ -915,34 +921,34 @@ namespace SharpPlant.SharpPlantReview
         ///     Toggles annotation display in the SmartPlant Review application main window.
         /// </summary>
         /// <param name="visible">Determines the annotation visibility state.</param>
-        public void Annotations_Display(bool visible)
-        {
-            // Throw an expection if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
+        //public void Annotations_Display(bool visible)
+        //{
+        //    // Throw an expection if not connected
+        //    if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Create the params
-            var visValue = Convert.ToInt32(visible);
+        //    // Create the params
+        //    var visValue = Convert.ToInt32(visible);
 
-            // Create the view object
-            dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
+        //    // Create the view object
+        //    dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
 
-            // Throw an exception if the DrViewDbl is null
-            if (objViewdataDbl == null) throw SprExceptions.SprObjectCreateFail;
+        //    // Throw an exception if the DrViewDbl is null
+        //    if (objViewdataDbl == null) throw SprExceptions.SprObjectCreateFail;
 
-            // Set the view object as the SPR Application main view
-            SprStatus = DrApi.ViewGetDbl(0, ref objViewdataDbl);
+        //    // Set the view object as the SPR Application main view
+        //    SprStatus = DrApi.ViewGetDbl(0, ref objViewdataDbl);
 
-            // Apply the updated annotation display
-            objViewdataDbl.AllAnnotationsDisplay = visValue;
+        //    // Apply the updated annotation display
+        //    objViewdataDbl.AllAnnotationsDisplay = visValue;
 
-            // Update the global annotation visibility properties
-            SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDisplay, visValue);
-            SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoTextDisplay, visValue);
-            SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDataDisplay, visValue);
+        //    // Update the global annotation visibility properties
+        //    SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDisplay, visValue);
+        //    SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoTextDisplay, visValue);
+        //    SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDataDisplay, visValue);
 
-            // Update the main view in SPR
-            SprStatus = DrApi.ViewSetDbl(0, ref objViewdataDbl);
-        }
+        //    // Update the main view in SPR
+        //    SprStatus = DrApi.ViewSetDbl(0, ref objViewdataDbl);
+        //}
 
         /// <summary>
         ///     Creates a new data field in the Mdb text_annotations table.
@@ -950,14 +956,14 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         /// <param name="fieldName">The string name of the field to be added.  Spaces in the field name are replaced.</param>
         /// <returns>Indicates the success or failure of the table modification.</returns>
-        public bool Annotations_AddDataField(string fieldName)
-        {
-            // Throw an exception if not connected
-            if (!IsConnected) throw SprExceptions.SprNotConnected;
+        //public bool Annotations_AddDataField(string fieldName)
+        //{
+        //    // Throw an exception if not connected
+        //    if (!IsConnected) throw SprExceptions.SprNotConnected;
 
-            // Add the tag field to the MDB database
-            return DbMethods.AddDbField(MdbPath, "text_annotations", fieldName);
-        }
+        //    // Add the tag field to the MDB database
+        //    return DbMethods.AddDbField(MdbPath, "text_annotations", fieldName);
+        //}
 
         /// <summary>
         ///     Prompts a user to place a new annotation in the SmartPlant Review main view.
@@ -1009,7 +1015,7 @@ namespace SharpPlant.SharpPlantReview
             anno = Annotations_Get(anno.Id);
 
             // Add an ObjectId field
-            Annotations_AddDataField("object_id");
+            //Annotations_AddDataField("object_id");
 
             // Save the ObjectId to the annotation data
             anno.Data["object_id"] = objId;
@@ -1092,7 +1098,7 @@ namespace SharpPlant.SharpPlantReview
             if (assocId == 0) return null;
 
             // Set the assiciated object
-            anno.AssociatedObject = GetObjectData(assocId);
+            //anno.AssociatedObject = GetObjectData(assocId);
 
             // Return the completed annotation
             return anno;

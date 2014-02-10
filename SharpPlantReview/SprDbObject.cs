@@ -12,6 +12,9 @@ namespace SharpPlant.SharpPlantReview
     {
         #region Properties
 
+        /// <summary>
+        ///     The backing DataRow that contains the SprDbObject values.
+        /// </summary>
         internal DataRow Row
         {
             get { return row ?? (row = GetDataRow()); }
@@ -26,25 +29,36 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     The default DataRow for instanciating a new SprDbObject.
         /// </summary>
-        public abstract DataRow DefaultRow { get; }
-
-        /// <summary>
-        ///     The unique key name for the SprDbObject Mdb table.
-        /// </summary>
-        public abstract string PrimaryKey { get; }
-
-        /// <summary>
-        ///     The name of the SprDbObject Mdb table name.
-        /// </summary>
-        public string TableName { get { return Row.Table.TableName; } }
+        public DataRow DefaultRow
+        {
+            get { return defaultRow ?? (defaultRow = GetDefaultRow()); }
+            set { defaultRow = value; }
+        }
+        private DataRow defaultRow;
 
         /// <summary>
         ///     The SprDbObject unique identification number.
         /// </summary>
         public int Id
         {
-            get { return Convert.ToInt32(Row[PrimaryKey]); }
-            private set { Row[PrimaryKey] = value; }
+            get { return Convert.ToInt32(Row[IdKey]); }
+            private set { Row[IdKey] = value; }
+        }
+
+        /// <summary>
+        ///     The unique key name for the SprDbObject Mdb table.
+        /// </summary>
+        public string IdKey
+        { 
+            get { return Row.Table.PrimaryKey[0].ColumnName; }
+        }
+
+        /// <summary>
+        ///     The name of the SprDbObject Mdb table name.
+        /// </summary>
+        public string TableName
+        {
+            get { return Row.Table.TableName; }
         }
 
         #endregion
@@ -66,11 +80,13 @@ namespace SharpPlant.SharpPlantReview
 
         #region Methods
 
+        // Getters
         private DataRow GetDataRow()
         {
             var dataRow = Application.MdbDatabase.Tables[TableName].Rows.Find((object)Id);
             return dataRow ?? (DefaultRow);
         }
+        protected abstract DataRow GetDefaultRow();
 
         /// <summary>
         ///     Loads the latest SprDbObject information from the MDB database.
@@ -89,7 +105,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void Update()
         {
-            var filter = string.Format("{0} = {1}", PrimaryKey, Id);
+            var filter = string.Format("{0} = {1}", IdKey, Id);
             DbMethods.UpdateDbTable(Application.MdbPath, filter, Row.Table);
         }
 

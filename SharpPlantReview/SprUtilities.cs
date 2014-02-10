@@ -15,48 +15,6 @@ namespace SharpPlant.SharpPlantReview
     {
 
         /// <summary>
-        ///     Data template for creating a new SprTag object.
-        /// </summary>
-        /// <returns></returns>
-        public static Dictionary<string, object> TagTemplate()
-        {
-            return new Dictionary<string, object>()
-            {
-                {"tag_unique_id", 0},
-                {"tag_size", 0},
-                {"linkage_id_0", 0},
-                {"linkage_id_1", 0},
-                {"linkage_id_2", 0},
-                {"linkage_id_3", 0},
-                {"tag_text", string.Empty},
-                {"number_color", 0},
-                {"backgnd_color", 0},
-                {"leader_color", 0},
-                {"discipline", string.Empty},
-                {"creator", string.Empty},
-                {"computer_name", string.Empty},
-                {"status", string.Empty}
-            };
-        }
-
-        /// <summary>
-        ///     Data template for creatring a new SprAnnotation object.
-        /// </summary>
-        /// <returns></returns>
-        public static Dictionary<string, object> AnnotationTemplate()
-        {
-            return new Dictionary<string, object>()
-            {
-                {"id", 0},
-                {"type_id", 0},
-                {"bg_color", 0},
-                {"line_color", 0},
-                {"text_color", 0},
-                {"text_string", string.Empty},
-            };
-        }
-
-        /// <summary>
         ///     Returns a 24-bit color integer.
         /// </summary>
         /// <param name="rgbColor">The System.Drawing.Color to be converted.</param>
@@ -142,43 +100,7 @@ namespace SharpPlant.SharpPlantReview
                 }
             }
         }
-
-        /// <summary>
-        ///     Serializes a DataRow into a new SprTag.
-        /// </summary>
-        /// <param name="row">The DataRow containing the tag values.</param>
-        /// <returns>The constructed SprTag.</returns>
-        [Obsolete]
-        public static SprTag BuildTagFromData(System.Data.DataRow row)
-        {
-            if (row == null)
-                return null;
-
-            var returnTag = new SprTag();
-
-            // Add the values to the tag data dictionary
-            returnTag.Row.ItemArray = row.ItemArray;
-
-            return returnTag;
-        }
 		
-		/// <summary>
-        ///     Serializes a SprAnnotation from a qualified DataRow
-        /// </summary>
-        /// <param name="row">The DataRow containing the annotation values.</param>
-        /// <returns>SprAnnotation</returns>
-        public static SprAnnotation BuildAnnotationFromData(System.Data.DataRow row)
-        {
-            var returnAnnotation = new SprAnnotation();
-            for (int i = 0; i < row.Table.Columns.Count; i++)
-			{
-                var key = row.Table.Columns[i].ColumnName;
-                returnAnnotation.Data[key] = row.ItemArray[i];
-			}
-
-            return returnAnnotation;
-        }
-
         /// <summary>
         ///     Checks for errors from a status returned by a DrApi function.
         /// </summary>
