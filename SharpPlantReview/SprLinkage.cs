@@ -1,5 +1,5 @@
 ﻿//
-//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  Copyright © 2014 Parrish Husband (parrish.husband@gmail.com)
 //  The MIT License (MIT) - See LICENSE.txt for further details.
 //
 
@@ -10,7 +10,7 @@ namespace SharpPlant.SharpPlantReview
     /// <summary>
     ///     Holds the linkage values for retrieving object and label information.
     /// </summary>
-    public class SprLinkage
+    public class SprLinkage : IEquatable<SprLinkage>
     {
         #region SprLinkage Properties
 
@@ -97,6 +97,48 @@ namespace SharpPlant.SharpPlantReview
         public override string ToString()
         {
             return string.Format("{0} {1} {2} {3}", Id1, Id2, Id3, Id4);
+        }
+
+        #endregion
+
+        #region IEquatable
+
+        public bool Equals(SprLinkage other)
+        {
+            if (ReferenceEquals(other, null))
+                return false;
+
+            if (ReferenceEquals(this, null))
+                return true;
+
+            return other.Id1.Equals(Id1) &&
+                   other.Id2.Equals(Id2) &&
+                   other.Id3.Equals(Id3) &&
+                   other.Id4.Equals(Id4);
+        }
+
+        public override int GetHashCode()
+        {
+            return Equals(null)
+                ? 0
+                : new {Id1, Id2, Id3, Id4}.GetHashCode();
+        }
+
+        public override bool Equals(Object obj)
+        {
+            return Equals(obj as SprLinkage);
+        }
+
+        public static bool operator ==(SprLinkage left, SprLinkage right)
+        {
+            return ReferenceEquals(left, null)
+                ? ReferenceEquals(right, null)
+                : left.Equals(right);
+        }
+
+        public static bool operator !=(SprLinkage left, SprLinkage right)
+        {
+            return !(left == right);
         }
 
         #endregion

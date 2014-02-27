@@ -5,7 +5,6 @@
 
 using System;
 using System.Data;
-using System.Windows.Forms;
 
 namespace SharpPlant.SharpPlantReview
 {
@@ -15,14 +14,14 @@ namespace SharpPlant.SharpPlantReview
 
         public bool Visibility
         {
-            get { return visibility; }
+            get { return _visibility; }
             set
             {
                 SetVisibility(value);
-                visibility = value;
+                _visibility = value;
             }
         }
-        private bool visibility;
+        private bool _visibility;
 
         #endregion
 
@@ -58,7 +57,9 @@ namespace SharpPlant.SharpPlantReview
             dynamic objViewdataDbl = Activator.CreateInstance(SprImportedTypes.DrViewDbl);
 
             // Set the view object as the SPR Application main view
-            Application SprStatus = Application.DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            Application.SprStatus = Application.DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
 
             // Apply the updated annotation display
             objViewdataDbl.AllAnnotationsDisplay = visState;
@@ -67,9 +68,13 @@ namespace SharpPlant.SharpPlantReview
             Application.SprStatus = Application.DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDisplay, visState);
             Application.SprStatus = Application.DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoTextDisplay, visState);
             Application.SprStatus = Application.DrApi.GlobalOptionsSet(SprConstants.SprGlobalAnnoDataDisplay, visState);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
 
             // Update the main view in SPR
             Application.SprStatus = Application.DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
         }
 
         #endregion

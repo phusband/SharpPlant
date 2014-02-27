@@ -1,5 +1,5 @@
 ﻿//
-//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  Copyright © 2014 Parrish Husband (parrish.husband@gmail.com)
 //  The MIT License (MIT) - See LICENSE.txt for further details.
 //
 
@@ -345,6 +345,8 @@ namespace SharpPlant.SharpPlantReview
             // Update the tag with the new leader points
             Application.SprStatus = Application.DrApi.TagSetDbl(Id, 0, Flags, annoLeader.DrPointDbl,
                                                 annoOrigin.DrPointDbl, curObject.Linkage.DrKey, Text);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
 
             //Refresh();
 
@@ -421,6 +423,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Update the main view
             Application.SprStatus = Application.DrApi.ViewUpdate(1);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
 
         }
 

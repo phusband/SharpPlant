@@ -15,14 +15,14 @@ namespace SharpPlant.SharpPlantReview
 
         public SprTagVisibility Visibility
         {
-            get { return visibility; }
+            get { return _visibility; }
             set 
             {
                 SetVisibility(value);
-                visibility = value; 
+                _visibility = value; 
             }
         }
-        private SprTagVisibility visibility;
+        private SprTagVisibility _visibility;
 
         #endregion
 

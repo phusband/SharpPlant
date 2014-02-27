@@ -11,9 +11,9 @@ namespace SharpPlant.SharpPlantReview
     /// <summary>
     ///     Contains information about a particular SmartPlant Review object.
     /// </summary>
-    public class SprObject
+    public class SprObject : IEquatable<SprObject>
     {
-        #region SprObject Properties
+        #region Properties
 
         /// <summary>
         ///     The active COM reference to the DrObjectDataDbl class
@@ -30,11 +30,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public int Color
         {
-            get
-            {
-                if (IsActive) return DrObjectDataDbl.Color;
-                return -1;
-            }
+            get { return IsActive ? DrObjectDataDbl.Color : -1; }
         }
 
         /// <summary>
@@ -42,11 +38,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public int DisplaySetCount
         {
-            get
-            {
-                if (IsActive) return DrObjectDataDbl.DisplaySetCount;
-                return -1;
-            }
+            get { return IsActive ? DrObjectDataDbl.DisplaySetCount : -1; }
         }
 
         /// <summary>
@@ -54,11 +46,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public int DisplaySetId
         {
-            get
-            {
-                if (IsActive) return DrObjectDataDbl.DisplaySetID;
-                return -1;
-            }
+            get { return IsActive ? DrObjectDataDbl.DisplaySetID : -1; }
         }
 
         /// <summary>
@@ -68,9 +56,10 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (IsActive)
-                    return DrObjectDataDbl.DisplaySetName == "0" ? string.Empty : DrObjectDataDbl.DisplaySetName;
-                return string.Empty;
+                return IsActive
+                    ? (DrObjectDataDbl.DisplaySetName == "0" ? string.Empty
+                    : DrObjectDataDbl.DisplaySetName)
+                    : string.Empty;
             }
         }
 
@@ -92,9 +81,10 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (IsActive)
-                    return DrObjectDataDbl.LabelFileName == "0" ? string.Empty : DrObjectDataDbl.LabelFileName;
-                return string.Empty;
+                return IsActive
+                    ? (DrObjectDataDbl.LabelFileName == "0" ? string.Empty
+                    : DrObjectDataDbl.LabelFileName)
+                    : string.Empty;
             }
         }
 
@@ -105,9 +95,7 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (IsActive)
-                    return new SprLinkage(DrObjectDataDbl.LabelKey);
-                return null;
+                return IsActive ? new SprLinkage(DrObjectDataDbl.LabelKey) : null;
             }
         }
 
@@ -116,11 +104,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public int Level
         {
-            get
-            {
-                if (IsActive) return DrObjectDataDbl.Level;
-                return -1;
-            }
+            get { return IsActive ? DrObjectDataDbl.Level : -1; }
         }
 
         /// <summary>
@@ -130,9 +114,10 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (IsActive)
-                    return DrObjectDataDbl.MaterialName == "0" ? string.Empty : DrObjectDataDbl.MaterialName;
-                return string.Empty;
+                return IsActive
+                    ? (DrObjectDataDbl.MaterialName == "0" ? string.Empty
+                    : DrObjectDataDbl.MaterialName)
+                    : string.Empty;
             }
         }
 
@@ -143,9 +128,10 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (IsActive)
-                    return DrObjectDataDbl.PaletteName == "0" ? string.Empty : DrObjectDataDbl.PaletteName;
-                return string.Empty;
+                return IsActive
+                    ? (DrObjectDataDbl.PaletteName == "0" ? string.Empty
+                    : DrObjectDataDbl.PaletteName)
+                    : string.Empty;
             }
         }
 
@@ -179,5 +165,46 @@ namespace SharpPlant.SharpPlantReview
             // Create the label dictionary
             Labels = new Dictionary<string, string>();
         }
+
+        #region IEquatable
+
+        public bool Equals(SprObject other)
+        {
+            if (ReferenceEquals(other, null))
+                return false;
+
+            if (ReferenceEquals(this, null))
+                return true;
+
+            return other.Linkage.Equals(Linkage) &&
+                   other.LabelFileName.Equals(LabelFileName) &&
+                   other.FileName.Equals(FileName);
+        }
+
+        public override bool Equals(Object obj)
+        {
+            return Equals(obj as SprObject);
+        }
+
+        public override int GetHashCode()
+        {
+            return Equals(null)
+                ? 0
+                : new {Linkage, LabelFileName, FileName}.GetHashCode();
+        }
+
+        public static bool operator ==(SprObject left, SprObject right)
+        {
+            return ReferenceEquals(left, null)
+                ? ReferenceEquals(right, null)
+                : left.Equals(right);
+        }
+
+        public static bool operator !=(SprObject left, SprObject right)
+        {
+            return !(left == right);
+        }
+
+        #endregion
     }
 }

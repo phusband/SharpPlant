@@ -1,11 +1,10 @@
 ﻿//
-//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  Copyright © 2014 Parrish Husband (parrish.husband@gmail.com)
 //  The MIT License (MIT) - See LICENSE.txt for further details.
 //
 
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Drawing;
 using Microsoft.Win32;
 
@@ -91,8 +90,10 @@ namespace SharpPlant.SharpPlantReview
                 // Open the SmartPlant Review tag registry
                 using (var regKey = Registry.CurrentUser.OpenSubKey(SprConstants.SprTagRegistryPath, true))
                 {
-                    var values = regKey.GetValueNames();
+                    if (regKey == null)
+                        return;
 
+                    var values = regKey.GetValueNames();
                     foreach (var t in values)
                         regKey.DeleteValue(t);
                 }
@@ -107,21 +108,22 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     Checks for errors from a status returned by a DrApi function.
         /// </summary>
-        /// <param name="status">The integer status returned by a DrApi function.</param>
-        public static void ErrorCheck(int status)
+        /// <param name="errorStatus">The integer status returned by a DrApi function.</param>
+        public static SprException GetError(int errorStatus)
         {
             var sprApp = SprApplication.ActiveApplication;
             if (sprApp == null || !sprApp.IsConnected)
                 throw SprExceptions.SprNotConnected;
 
-            if (status == 0)
-                return;
+            if (errorStatus == 0)
+                return null;
 
-            var errorString = string.Empty;
-            sprApp.DrApi.ErrorString(status, out errorString);
+            string errorString;
+            sprApp.DrApi.ErrorString(errorStatus, out errorString);
+            if (sprApp.SprStatus != 0)
+                throw sprApp.SprException;
 
-            sprApp.LastError = errorString;
-            throw new SprException(errorString);
+            return new SprException(errorString);
         }
     }
 }

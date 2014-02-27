@@ -8,7 +8,7 @@ using System.Data;
 
 namespace SharpPlant.SharpPlantReview
 {
-    public abstract class SprDbObject
+    public abstract class SprDbObject : IEquatable<SprDbObject>
     {
         #region Properties
 
@@ -17,9 +17,9 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         internal DataRow Row
         {
-            get { return row ?? (row = GetDataRow()); }
+            get { return _row ?? (_row = GetDataRow()); }
         }
-        private DataRow row;
+        private DataRow _row;
 
         /// <summary>
         ///     The parent SprApplication object.
@@ -31,10 +31,10 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public DataRow DefaultRow
         {
-            get { return defaultRow ?? (defaultRow = GetDefaultRow()); }
-            set { defaultRow = value; }
+            get { return _defaultRow ?? (_defaultRow = GetDefaultRow()); }
+            set { _defaultRow = value; }
         }
-        private DataRow defaultRow;
+        private DataRow _defaultRow;
 
         /// <summary>
         ///     The SprDbObject unique identification number.
@@ -67,14 +67,13 @@ namespace SharpPlant.SharpPlantReview
 
         protected SprDbObject()
         {   
-            row = DefaultRow;
+            _row = DefaultRow;
             Application = SprApplication.ActiveApplication;
         }
         protected SprDbObject(DataRow datarow)
         {
-            row = datarow;
+            _row = datarow;
             Application = SprApplication.ActiveApplication;
-            
         }
 
         #endregion
@@ -84,7 +83,7 @@ namespace SharpPlant.SharpPlantReview
         // Getters
         private DataRow GetDataRow()
         {
-            var dataRow = Application.MdbDatabase.Tables[TableName].Rows.Find((object)Id);
+            var dataRow = Application.MdbDatabase.Tables[TableName].Rows.Find(Id);
             return dataRow ?? (DefaultRow);
         }
         protected abstract DataRow GetDefaultRow();
@@ -95,14 +94,14 @@ namespace SharpPlant.SharpPlantReview
         public void Refresh()
         {
             var updatedTable = DbMethods.GetDbTable(Application.MdbPath, TableName);
-            var updatedRow = updatedTable.Rows.Find((object)Id);
+            var updatedRow = updatedTable.Rows.Find(Id);
 
-            row = updatedRow;
+            _row = updatedRow;
 
-            if (row.RowState == DataRowState.Detached)
-                row.Table.Rows.Add(row);
+            if (_row.RowState == DataRowState.Detached)
+                _row.Table.Rows.Add(_row);
 
-            row.AcceptChanges();
+            _row.AcceptChanges();
         }
 
         /// <summary>
@@ -112,6 +111,34 @@ namespace SharpPlant.SharpPlantReview
         {
             var filter = string.Format("{0} = {1}", IdKey, Id);
             DbMethods.UpdateDbTable(Application.MdbPath, filter, Row.Table);
+        }
+
+        #endregion
+
+        #region IEquatable
+
+        public bool Equals(SprDbObject other)
+        { 
+            if (ReferenceEquals(other, null))
+                return false;
+            
+            if (ReferenceEquals(this, null))
+                return true;               
+
+            // Matching Ids will only work from the same table
+            return Id == other.Id && other.TableName.Equals(TableName);
+        }
+
+        public override bool Equals(Object obj)
+        {
+            return Equals(obj as SprDbObject);
+        }
+
+        public override int GetHashCode()
+        {
+            return Equals(null)
+                ? 0
+                : new {Id, TableName}.GetHashCode();
         }
 
         #endregion

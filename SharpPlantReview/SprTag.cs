@@ -48,20 +48,20 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public SprPoint3D OriginPoint
         {
-            get { return originPoint ?? (originPoint = GetOriginPoint()); }
+            get { return _originPoint ?? (_originPoint = GetOriginPoint()); }
             set { SetOriginPoint(value); }
         }
-        private SprPoint3D originPoint;
+        private SprPoint3D _originPoint;
 
         /// <summary>
         ///     Point for the end of the leader.  If the tag has not been placed, the point coordinates will be 0, 0, 0.
         /// </summary>
         public SprPoint3D LeaderPoint
         {
-            get { return leaderPoint ?? (leaderPoint = GetLeaderPoint()); }
+            get { return _leaderPoint ?? (_leaderPoint = GetLeaderPoint()); }
             set { SetLeaderPoint(value); }
         }
-        private SprPoint3D leaderPoint;
+        private SprPoint3D _leaderPoint;
 
         /// <summary>
         ///     Tag text.
@@ -189,9 +189,9 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public Image Image
         {
-            get { return image ?? (image = GetImage()); }
+            get { return _image ?? (_image = GetImage()); }
         }
-        private Image image;
+        private Image _image;
 
         /// <summary>
         ///     Determines if the tag has labels linked to the MDB2
@@ -223,15 +223,15 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public SprObject LinkedObject
         {
-            get { return linkedObject ?? (linkedObject = GetLinkedObject()); }
+            get { return _linkedObject ?? (_linkedObject = GetLinkedObject()); }
         }
-        private SprObject linkedObject;
+        private SprObject _linkedObject;
 
         #endregion
 
         #region Constructors
 
-        public SprTag() : base()
+        public SprTag()
         {
             IsPlaced = false;
             DisplayLeader = true;
@@ -246,7 +246,6 @@ namespace SharpPlant.SharpPlantReview
 
         #region Methods
 
-        // Getter Methods
         protected override DataRow GetDefaultRow()
         {
             var tagTable = SprApplication.ActiveApplication.MdbDatabase.Tables["tag_data"];
@@ -271,22 +270,20 @@ namespace SharpPlant.SharpPlantReview
         }
         private Image GetImage()
         {
-            if (!HasImage)
-                return null;
-
-            return DbMethods.GetDbImage(Row["tag_image"]);
+            return !HasImage ? null : DbMethods.GetDbImage(Row["tag_image"]);
         }
+
         private SprObject GetLinkedObject()
         {
             if (!IsDataLinked)
                 return null;
 
-            var searchString = string.Format("FIND linkages = {0}", Linkage.ToString());
+            var searchString = string.Format("FIND linkages = {0}", Linkage);
             var objIds = Application.ObjectDataSearch(searchString);
             if (objIds.Count > 1)
             {
                 // Use the tag origin point to filter down to a single object
-                var volumeFormat = "{0} N, {1} E, {2} El";
+                const string volumeFormat = "{0} N, {1} E, {2} El";
                 var volumeStart = string.Format(volumeFormat, OriginPoint.North, OriginPoint.East, OriginPoint.Elevation);
                 var volumeEnd = string.Format(volumeFormat, OriginPoint.North, OriginPoint.East, OriginPoint.Elevation);
 
@@ -298,7 +295,7 @@ namespace SharpPlant.SharpPlantReview
 
             if (objIds.Count == 0)
                 return null;
-            else if (objIds.Count > 1)
+            if (objIds.Count > 1)
                 throw new SprException("Multiple objects found for linkage {0}", Linkage);
             return Application.GetObjectData(objIds[0]);
         }
@@ -321,13 +318,12 @@ namespace SharpPlant.SharpPlantReview
                                   Convert.ToDouble(Row["tag_origin_z"]));
         }
 
-        // Setter Methods
         private void SetLeaderPoint(SprPoint3D newpoint)
         {
             if (!IsPlaced)
                 throw SprExceptions.SprTagNotPlaced;
 
-            leaderPoint = newpoint;
+            _leaderPoint = newpoint;
             Row["tag_origin_x"] = newpoint.East;
             Row["tag_origin_y"] = newpoint.North;
             Row["tag_origin_z"] = newpoint.Elevation;
@@ -337,7 +333,7 @@ namespace SharpPlant.SharpPlantReview
             if (!IsPlaced)
                 throw SprExceptions.SprTagNotPlaced;
 
-            originPoint = newpoint;
+            _originPoint = newpoint;
             Row["tag_origin_x"] = newpoint.East;
             Row["tag_origin_y"] = newpoint.North;
             Row["tag_origin_z"] = newpoint.Elevation;
@@ -354,6 +350,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Delete the desired tag
             Application.SprStatus = Application.DrApi.TagDelete(Id, 0);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
 
             // Set the deleted tag as the next tag number
             if (setNext)
@@ -361,6 +359,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Update the main view
             Application.SprStatus = Application.DrApi.ViewUpdate(1);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
         }
 
         /// <summary>
@@ -402,6 +402,8 @@ namespace SharpPlant.SharpPlantReview
             // Update the tag with the new leader points
             Application.SprStatus = Application.DrApi.TagSetDbl(Id, 0, Flags, tagLeader.DrPointDbl,
                                                 tagOrigin.DrPointDbl, curObject.Linkage.DrKey, Text);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
 
             Refresh();
 
@@ -414,6 +416,8 @@ namespace SharpPlant.SharpPlantReview
 
             SendToTextWindow();
             Application.SprStatus = Application.DrApi.ViewUpdate(1);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
         }
 
         /// <summary>
@@ -459,6 +463,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Locate the desired tag on the main screen with the specified visibility
             Application.SprStatus = Application.DrApi.GotoTag(Id, 0, Convert.ToInt32(displayTag));
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
         }
 
         /// <summary>
@@ -490,7 +496,7 @@ namespace SharpPlant.SharpPlantReview
                 return;
             }
 
-            linkedObject = Application.GetObjectData(objId);
+            _linkedObject = Application.GetObjectData(objId);
 
             Flags |= SprConstants.SprTagLabel;
             Id = Application.NextTag;
@@ -501,9 +507,12 @@ namespace SharpPlant.SharpPlantReview
             // Place the tag
             Application.SprStatus = Application.DrApi.TagSetDbl(Id, 0, Flags, ref tagLeader.DrPointDbl,
                                             ref tagOrigin.DrPointDbl, LinkedObject.Linkage.DrKey, Text);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
 
-            leaderPoint = tagLeader;
-            originPoint = tagOrigin;
+            IsPlaced = true;
+            _leaderPoint = tagLeader;
+            _originPoint = tagOrigin;
 
             Refresh();
 
@@ -512,6 +521,8 @@ namespace SharpPlant.SharpPlantReview
 
             SendToTextWindow();
             Application.SprStatus = Application.DrApi.ViewUpdate(1);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
         }
 
         /// <summary>
@@ -535,13 +546,13 @@ namespace SharpPlant.SharpPlantReview
         ///     Saves a snapshot of the current SprApplication main view to the MDB database.
         /// </summary>
         /// <param name="snapShot">The snapshot format the image will be created with.</param>
-        /// <param name="ZoomToTag">Determines if the main view zooms to the tag in the main SmartPlant screen.</param>
-        public void TakeSnapshot(bool ZoomToTag, SprSnapShot snapShot = null)
+        /// <param name="zoomToTag">Determines if the main view zooms to the tag in the main SmartPlant screen.</param>
+        public void TakeSnapshot(bool zoomToTag, SprSnapShot snapShot = null)
         {
             if (!Row.Table.Columns.Contains("tag_image"))
                 Application.Tags.AddDataField("tag_image", "OLEOBJECT");
 
-            if (ZoomToTag)
+            if (zoomToTag)
                 Goto();
 
             var snap = snapShot ?? Application.DefaultSnapshot;   

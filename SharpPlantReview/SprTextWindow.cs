@@ -20,15 +20,15 @@ namespace SharpPlant.SharpPlantReview
             get
             {
                 RefreshText();
-                return text;
+                return _text;
             }
             set
             {
                 UpdateText();
-                text = value;
+                _text = value;
             }
         }
-        private string text;
+        private string _text;
 
         /// <summary>
         ///     The title of the window.
@@ -38,15 +38,15 @@ namespace SharpPlant.SharpPlantReview
             get 
             {
                 RefreshText();
-                return title;
+                return _title;
             }
             set
             {
                 UpdateText();
-                title = value;
+                _title = value;
             }
         }
-        private string title;
+        private string _title;
 
         #endregion
 
@@ -66,23 +66,27 @@ namespace SharpPlant.SharpPlantReview
             if (!Application.IsConnected)
                 throw SprExceptions.SprNotConnected;
 
-            var orgTitle = title;
-            var orgText = text;
-            int orgLength = 0;
+            var orgTitle = _title;
+            var orgText = _text;
 
             try
             {
                 // Get the existing text window values
+                int orgLength;
                 Application.SprStatus = Application.DrApi.TextWindowGet(ref orgTitle, out orgLength, ref orgText);
+                if (Application.SprStatus != 0)
+                    throw Application.SprException;
+
             }
             catch (SprException)
             {
-                return;
+                // Do nothing, because this method crashes when no text exists
+                // in the text window.  Stay classy Intergraph.
             }
             finally
             {
-                text = orgText;
-                title = orgTitle;
+                _text = orgText;
+                _title = orgTitle;
             }
         }
         private void UpdateText()
@@ -93,14 +97,16 @@ namespace SharpPlant.SharpPlantReview
             var flags = 0;
             flags |= SprConstants.SprClearTextWindow;
 
-            if (title == null)
-                title = "Text View";
+            if (_title == null)
+                _title = "Text View";
 
-            if (text == null)
-                text = string.Empty;
+            if (_text == null)
+                _text = string.Empty;
 
             // Get the text window values
-            Application.SprStatus = Application.DrApi.TextWindow(flags, title, text, 0);
+            Application.SprStatus = Application.DrApi.TextWindow(flags, _title, _text, 0);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
         }
 
         /// <summary>

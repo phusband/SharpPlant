@@ -11,7 +11,7 @@ namespace SharpPlant.SharpPlantReview
     /// </summary>
     public class SprWindow
     {
-        #region SPRWindow Properties
+        #region Properties
 
         /// <summary>
         ///     The active COM reference to the DrWindow class
@@ -94,11 +94,11 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     The window handle.
         /// </summary>
-        public int hWnd
+        public int HWnd
         {
-            get { return hwnd; }
+            get { return _hwnd; }
         }
-        private int hwnd;
+        private int _hwnd;
 
         /// <summary>
         ///     Index of the window.
@@ -129,12 +129,20 @@ namespace SharpPlant.SharpPlantReview
         {
             // Get the window data
             Application.SprStatus = Application.DrApi.WindowGet((int)Type, out DrWindow);
-            Application.SprStatus = Application.DrApi.WindowHandleGet((int)Type, out hwnd);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
+
+            Application.SprStatus = Application.DrApi.WindowHandleGet((int)Type, out _hwnd);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
+
         }
         private void Update()
         {
             // Set the window data
             Application.SprStatus = Application.DrApi.WindowSet((int)Type, DrWindow);
+            if (Application.SprStatus != 0)
+                throw Application.SprException;
         }
 
         #endregion

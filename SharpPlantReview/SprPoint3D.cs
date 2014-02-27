@@ -3,12 +3,14 @@
 //  The MIT License (MIT) - See LICENSE.txt for further details.
 //
 
+using System;
+
 namespace SharpPlant.SharpPlantReview
 {
     /// <summary>
     ///     Provides the structure for a 3D point in SmartPlant Review.
     /// </summary>
-    public class SprPoint3D
+    public class SprPoint3D : IEquatable<SprPoint3D>
     {
         #region Properties
 
@@ -74,5 +76,42 @@ namespace SharpPlant.SharpPlantReview
         }
 
         #endregion
+
+        public bool Equals(SprPoint3D other)
+        {
+            if (ReferenceEquals(other, null))
+                return false;
+
+            if (ReferenceEquals(this, null))
+                return true;
+
+            return other.North.Equals(North) &&
+                   other.East.Equals(East) &&
+                   other.Elevation.Equals(Elevation);
+        }
+
+        public override int GetHashCode()
+        {
+            return Equals(null)
+                ? 0
+                : new {East, North, Elevation}.GetHashCode();
+        }
+
+        public override bool Equals(Object obj)
+        {
+            return Equals(obj as SprPoint3D);
+        }
+
+        public static bool operator ==(SprPoint3D left, SprPoint3D right)
+        {
+            return ReferenceEquals(left, null) 
+                ? ReferenceEquals(right, null) 
+                : left.Equals(right);
+        }
+
+        public static bool operator !=(SprPoint3D left, SprPoint3D right)
+        {
+            return !(left == right);
+        }
     }
 }

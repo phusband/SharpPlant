@@ -9,7 +9,6 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -33,12 +32,7 @@ namespace SharpPlant.SharpPlantReview
             /// </summary>
             public SprWindow ApplicationWindow
             {
-                get
-                {
-                    if (_applicationWindow == null)
-                        _applicationWindow = GetWindow(SprWindowType.ApplicationWindow);
-                    return _applicationWindow;
-                }
+                get { return _applicationWindow ?? (_applicationWindow = GetWindow(SprWindowType.ApplicationWindow)); }
                 set
                 {
                     _applicationWindow = value;
@@ -51,12 +45,7 @@ namespace SharpPlant.SharpPlantReview
             /// </summary>
             public SprWindow ElevationWindow
             {
-                get
-                {
-                    if (_elevationWindow == null)
-                        _elevationWindow = GetWindow(SprWindowType.ElevationWindow);
-                    return _elevationWindow;
-                }
+                get { return _elevationWindow ?? (_elevationWindow = GetWindow(SprWindowType.ElevationWindow)); }
                 set
                 {
                     _elevationWindow = value;
@@ -69,12 +58,7 @@ namespace SharpPlant.SharpPlantReview
             /// </summary>
             public SprWindow MainWindow
             {
-                get
-                {
-                    if (_mainWindow == null)
-                        _mainWindow = GetWindow(SprWindowType.MainWindow);
-                    return _mainWindow;
-                }
+                get { return _mainWindow ?? (_mainWindow = GetWindow(SprWindowType.MainWindow)); }
                 set
                 {
                     _mainWindow = value;
@@ -87,12 +71,7 @@ namespace SharpPlant.SharpPlantReview
             /// </summary>
             public SprWindow PlanWindow
             {
-                get
-                {
-                    if (_planWindow == null)
-                        _planWindow = GetWindow(SprWindowType.PlanWindow);
-                    return _planWindow;
-                }
+                get { return _planWindow ?? (_planWindow = GetWindow(SprWindowType.PlanWindow)); }
                 set
                 {
                     _planWindow = value;
@@ -105,12 +84,7 @@ namespace SharpPlant.SharpPlantReview
             /// </summary>
             public SprTextWindow TextWindow
             {
-                get
-                {
-                    if (_textWindow == null)
-                        _textWindow = (SprTextWindow)GetWindow(SprWindowType.TextWindow);
-                    return _textWindow;
-                }
+                get { return _textWindow ?? (_textWindow = (SprTextWindow) GetWindow(SprWindowType.TextWindow)); }
                 set
                 {
                     _textWindow = value;
@@ -134,15 +108,15 @@ namespace SharpPlant.SharpPlantReview
                 if (!Application.IsConnected)
                     throw SprExceptions.SprNotConnected;
 
-                if (type == SprWindowType.TextWindow)
-                    return new SprTextWindow(Application);
-                return new SprWindow(Application, type);
+                return type == SprWindowType.TextWindow ? 
+                               new SprTextWindow(Application) : 
+                               new SprWindow(Application, type);
             }
         }
 
         #region Properties
 
-        private bool disposed;
+        private bool _disposed;
 
         /// <summary>
         ///     The static Application used to set the class parent object.
@@ -214,9 +188,9 @@ namespace SharpPlant.SharpPlantReview
         }
 
         /// <summary>
-        ///     The last error message returned from the most recent DrApi function call.
+        ///     The last error returned from the most recent DrApi function call.
         /// </summary>
-        public string LastError { get; internal set; }
+        public SprException SprException { get; internal set; }
 
         /// <summary>
         ///     Gets the MDB path to the active review session.
@@ -298,8 +272,8 @@ namespace SharpPlant.SharpPlantReview
             {
                 _sprStatus = value;
 
-                // Handle the errors
-                SprUtilities.ErrorCheck(value);
+                // Set the error
+                SprException = SprUtilities.GetError(value);
             }
         }
         private int _sprStatus;
@@ -403,11 +377,12 @@ namespace SharpPlant.SharpPlantReview
             var sessionName = string.Empty;
 
             // Set the DrApi global options to return the file name
-            //SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
             GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
             
             // Get the session file name
             SprStatus = DrApi.FileNameFromNumber(0, ref sessionName);
+            if (SprStatus != 0)
+                throw SprException;
 
             return sessionName;
         }
@@ -422,12 +397,18 @@ namespace SharpPlant.SharpPlantReview
 
             // Set the DrApi global options to return the file name
             SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
-
+            if (SprStatus != 0)
+                throw SprException;
+            
             // MDB Name
             SprStatus = DrApi.FileNameFromNumber(1, ref mdbName);
+            if (SprStatus != 0)
+                throw SprException;
 
             // MDB Directory
             SprStatus = DrApi.FilePathFromNumber(1, ref dirPath);
+            if (SprStatus != 0)
+                throw SprException;
 
             if (dirPath != null && mdbName != null)
                 return Path.Combine(dirPath, mdbName);
@@ -441,6 +422,8 @@ namespace SharpPlant.SharpPlantReview
 
             int procId = 0;
             SprStatus = DrApi.vbProcessIdGet(out procId);
+            if (SprStatus != 0)
+                throw SprException;
 
             return (IntPtr)(procId);
         }
@@ -476,6 +459,8 @@ namespace SharpPlant.SharpPlantReview
             // Get the next tag number
             var returnTag = 0;
             SprStatus = DrApi.TagNextNumber(out returnTag, 0);
+            if (SprStatus != 0)
+                throw SprException;
 
             return returnTag;
         }
@@ -488,6 +473,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Get the version of the SPR Application
             SprStatus = DrApi.Version(ref vers);
+            if (SprStatus != 0)
+                throw SprException;
 
             return vers;
         }
@@ -496,13 +483,12 @@ namespace SharpPlant.SharpPlantReview
             if (!IsConnected)
                 return null;
 
-            // TODO:  Add a DbMethod for returning a set of tables so that a single Db connection can be used 
-            var tables = new string[] { "tag_data", "site_table", "text_annotations", "text_annotation_types" };
-
             var returnSet = new DataSet("MDB Database");
 
-            for (int i = 0; i < tables.Length; i++)
-                returnSet.Tables.Add(DbMethods.GetDbTable(MdbPath, tables[i]));
+            // TODO:  Add a DbMethod for returning a set of tables so that a single Db connection can be used 
+            var tables = new[] { "tag_data", "site_table", "text_annotations", "text_annotation_types" };
+            foreach (var t in tables)
+                returnSet.Tables.Add(DbMethods.GetDbTable(MdbPath, t));
 
             return returnSet;
         }
@@ -515,6 +501,8 @@ namespace SharpPlant.SharpPlantReview
 
             var fileCount = 0;
             SprStatus = DrApi.FileCountGet(out fileCount);
+            if (SprStatus != 0)
+                throw SprException;
 
             var returnList = new List<string>();
 
@@ -522,8 +510,14 @@ namespace SharpPlant.SharpPlantReview
             {
                 string curName;
                 string curPath;
+
                 SprStatus = DrApi.FileNameFromNumber(i, out curName);
+                if (SprStatus != 0)
+                    throw SprException;
+
                 SprStatus = DrApi.FilePathFromNumber(i, out curPath);
+                if (SprStatus != 0)
+                    throw SprException;
 
                 returnList.Add(Path.Combine(curPath, curName));
             }
@@ -537,12 +531,12 @@ namespace SharpPlant.SharpPlantReview
                 throw SprExceptions.SprNotConnected;
 
             var siteTable = MdbDatabase.Tables["site_table"];
-            var tagTable = MdbDatabase.Tables["text_annotations"];
-            if (tagTable.Rows.Count > 0)
+            var annoTable = MdbDatabase.Tables["text_annotations"];
+            if (annoTable.Rows.Count > 0)
 
                 // Set the next tag to the highest tag value + 1
                 siteTable.Rows[0]["next_anno_id"] =
-                    Convert.ToInt32(tagTable.Rows[tagTable.Rows.Count - 1]["tag_unique_id"]) + 1;
+                    Convert.ToInt32(annoTable.Rows[annoTable.Rows.Count - 1]["id"]) + annoId;
             else
 
                 // Set the next tag to 1
@@ -561,54 +555,13 @@ namespace SharpPlant.SharpPlantReview
 
                 // Set the next tag to the highest tag value + 1
                 siteTable.Rows[0]["next_tag_id"] =
-                    Convert.ToInt32(tagTable.Rows[tagTable.Rows.Count - 1]["tag_unique_id"]) + 1;
+                    Convert.ToInt32(tagTable.Rows[tagTable.Rows.Count - 1]["tag_unique_id"]) + tagId;
             else
 
                 // Set the next tag to 1
                 siteTable.Rows[0]["next_tag_id"] = 1;
 
             DbMethods.UpdateDbTable(MdbPath, siteTable);
-        }
-
-        /// <summary>
-        ///     Runs the specified DrApi method through the active AprApplication.
-        /// </summary>
-        /// <param name="method">The SprNativeMethod to invoke.</param>
-        /// <param name="args">The arguments passed to the method.</param>
-        /// <returns>The object array returned from the method.</returns>
-        ///        
-        private object[] Run(SprNativeMethods method, params object[] args)
-        {
-            var methodName = method.ToString();
-            var p = new ParameterModifier(args.Length);
-            for (int i = 0; i < args.Length; i++)
-                p[i] = true;
-            ParameterModifier[] mods = { p };
-
-            MethodInfo mInfo = SprImportedTypes.DrApi.GetMethod(methodName, BindingFlags.Instance |
-                                                                        BindingFlags.NonPublic |
-                                                                        BindingFlags.Static);
-
-
-            SprStatus = Convert.ToInt32(SprImportedTypes.DrApi.InvokeMember(methodName, BindingFlags.InvokeMethod,
-                                                            null, DrApi, args, mods, null, null));
-
-            SprUtilities.ErrorCheck(SprStatus);
-
-            return args;
-        }
-
-        static MethodInfo GetPrivateMethod(Type type, string name)
-        {
-            MethodInfo retVal;
-            do
-            {
-                retVal = type.GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                if (retVal != (object)null)
-                    break;
-                type = type.BaseType;
-            } while (type != (object)null);
-            return retVal;
         }
 
         #endregion
@@ -622,7 +575,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void Activate()
         {
-            NativeWin32.SetForegroundWindow(Windows.ApplicationWindow.hWnd);
+            NativeWin32.SetForegroundWindow(Windows.ApplicationWindow.HWnd);
         }
 
         /// <summary>
@@ -645,7 +598,7 @@ namespace SharpPlant.SharpPlantReview
         }
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposed)
+            if (!_disposed)
             {
                 if (disposing)
                 {
@@ -653,7 +606,7 @@ namespace SharpPlant.SharpPlantReview
                         Marshal.ReleaseComObject(DrApi);
                 }
 
-                disposed = true;
+                _disposed = true;
                 DrApi = null;
             }
         }
@@ -670,6 +623,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Try opening the file using the Api method call
             SprStatus = DrApi.SessionAttach(fileName);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Set the session vars
             _mdbPath = GetMdbPath();
@@ -695,6 +650,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Export the current session to VUE
             SprStatus = DrApi.ExportVue(vueName, 0);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         /// <summary>
@@ -707,6 +664,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Exit the SPR application
             SprStatus = DrApi.ExitViewer();
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         /// <summary>
@@ -735,6 +694,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Set the global option to the provided value
             SprStatus = DrApi.GlobalOptionsSet(option, value);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         /// <summary>
@@ -751,6 +712,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Get the global option value
             SprStatus = DrApi.GlobalOptionsGet(option, out returnVal);
+            if (SprStatus != 0)
+                throw SprException;
 
             return returnVal;
         }
@@ -763,6 +726,8 @@ namespace SharpPlant.SharpPlantReview
         {
             // Highlight the object in SPR
             SprStatus = DrApi.HighlightObject(objectId, 1, 0);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         /// <summary>
@@ -772,9 +737,13 @@ namespace SharpPlant.SharpPlantReview
         {
             // Clear the highlighting in SPR 
             SprStatus = DrApi.HighlightExit(1);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Refresh the main window
             SprStatus = DrApi.ViewUpdate(1);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         #endregion
@@ -799,6 +768,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Prompt the user for a 3D point inside SPR
             SprStatus = DrApi.PointLocateDbl(prompt, out abortFlag, ref returnPoint.DrPointDbl);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Return null if the locate operation was aborted
             return abortFlag != 0 ? returnPoint : null;
@@ -826,6 +797,8 @@ namespace SharpPlant.SharpPlantReview
             // Prompt the user for a 3D point inside SPR
             SprStatus = DrApi.PointLocateExtendedDbl(prompt, out abort, ref returnPoint.DrPointDbl,
                                                          ref targetPoint.DrPointDbl, out objId, flag);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Return null if the locate operation was aborted
             if (abort == 0)
@@ -865,6 +838,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Prompt the user for a 3D point inside SPR
             SprStatus = DrApi.ObjectLocateDbl(prompt, filterFlag, out returnId, ref refPoint.DrPointDbl);
+            if (SprStatus != 0)
+                throw SprException;
 
             return returnId;
         }
@@ -882,17 +857,21 @@ namespace SharpPlant.SharpPlantReview
             if (objectId == 0)
                 return null;
 
-            var returnData = new SprObject();
-            returnData.Id = objectId;
+            var returnData = new SprObject {Id = objectId};
 
             // Get the DataDbl object
             SprStatus = DrApi.ObjectDataGetDbl(objectId, 2, ref returnData.DrObjectDataDbl);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Iterate through the labels
             string lblName = string.Empty, lblValue = string.Empty;
             for (var i = 0; i < returnData.DrObjectDataDbl.LabelDataCount; i++)
             {
                 SprStatus = DrApi.ObjectDataLabelGet(ref lblName, ref lblValue, i);
+                if (SprStatus != 0)
+                    throw SprException;
+
                 if (!returnData.Labels.ContainsKey(lblName))
                     returnData.Labels.Add(lblName, lblValue);
             }
@@ -937,12 +916,17 @@ namespace SharpPlant.SharpPlantReview
         {
             int itemCount;
             SprStatus = DrApi.ObjectDataSearch(criteria, 0, out itemCount);
+            if (SprStatus != 0)
+                throw SprException;
 
             var returnIds = new List<int>();
             for (int i = 0; i < itemCount; i++)
             {
                 int curId;
                 SprStatus = DrApi.ObjectDataSearchIdGet(out curId, i);
+                if (SprStatus != 0)
+                    throw SprException;
+
                 if (curId != 0)
                     returnIds.Add(curId);
 
@@ -1044,9 +1028,13 @@ namespace SharpPlant.SharpPlantReview
             // Place the annotation on screen
             int annoId;
             SprStatus = DrApi.AnnotationCreateDbl(anno.Type, ref drAnno, out annoId);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Link the located object to the annotation
             SprStatus = DrApi.AnnotationDataSet(annoId, anno.Type, ref drAnno, ref objId);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Retrieve the placed annotation data
             anno = Annotations_Get(anno.Id);
@@ -1066,6 +1054,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Update the main view
             SprStatus = DrApi.ViewUpdate(1);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         public void Annotations_EditLeader(int annoNo)
@@ -1118,7 +1108,10 @@ namespace SharpPlant.SharpPlantReview
 
             // Prompt the user to select the annotation
             var msg = string.Format("SELECT THE DESIRED {0} ANNOTATION", type.ToUpper());
+
             SprStatus = DrApi.AnnotationLocate(type, msg, 0, out annoId);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Return null if the annotation locate failed
             if (annoId == 0) return null;
@@ -1129,7 +1122,10 @@ namespace SharpPlant.SharpPlantReview
             // Get the associated object ID
             int assocId;
             var drAnno = anno.DrAnnotationDbl;
+
             SprStatus = DrApi.AnnotationDataGet(annoId, type, ref drAnno, out assocId);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Return null if the associated object id is zero
             if (assocId == 0) return null;
@@ -1159,15 +1155,21 @@ namespace SharpPlant.SharpPlantReview
             // Prompt the user to select the annotation
             var msg = string.Format("SELECT THE {0} ANNOTATION TO DELETE", type.ToUpper());
             SprStatus = DrApi.AnnotationLocate(type, msg, 0, out annoId);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Return if the annotation locate was unsuccessful
             if (annoId == 0) return;
 
             // Delete the selected annotation
             SprStatus = DrApi.AnnotationDelete(type, annoId, 0);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Update the main view
             SprStatus = DrApi.ViewUpdate(1);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         /// <summary>
@@ -1181,9 +1183,13 @@ namespace SharpPlant.SharpPlantReview
 
             // Delete all annotations matching the provided type
             SprStatus = DrApi.AnnotationDeleteAll(type, 0);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Update the main view
             SprStatus = DrApi.ViewUpdate(1);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         /// <summary>
@@ -1212,6 +1218,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Update the main view
             SprStatus = DrApi.ViewUpdate(1);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         /// <summary>
@@ -1359,6 +1367,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Take the snapshot
             SprStatus = DrApi.SnapShot(imgPath, snap.Flags, snap.DrSnapShot, 0);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Wait until finished
             while (IsBusy)
@@ -1375,7 +1385,7 @@ namespace SharpPlant.SharpPlantReview
                 return null;
 
             // Format the snapshot if required
-            if (snapShot.OutputFormat != SprSnapshotFormat.Bmp)
+            if (snap.OutputFormat != SprSnapshotFormat.Bmp)
                 SprSnapShot.FormatSnapshot(imgPath, snap.OutputFormat);
 
             return Image.FromFile(imgPath);
@@ -1387,14 +1397,16 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="quality"></param>
         /// <param name="path"></param>
         /// <returns></returns>
-        public void ExportPDF(int quality, string path)
+        public void ExportPdf(int quality, string path)
         {
             // Check version compatibility
-            int vers = int.Parse(Version.Substring(0, 2));
+            var vers = int.Parse(Version.Substring(0, 2));
             if (vers < 9)
                 throw SprExceptions.SprVersionIncompatibility;
 
             SprStatus = DrApi.ExportPDF(path, quality, 1, 1, 1);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         #endregion
@@ -1416,6 +1428,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Set the view object as the SPR Application main view
             SprStatus = DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Return the centerpoint
             return new SprPoint3D(objViewdataDbl.CenterUorPoint);
@@ -1431,12 +1445,16 @@ namespace SharpPlant.SharpPlantReview
 
             // Set the view object as the SPR Application main view
             SprStatus = DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Apply the updated centerpoint
             objViewdataDbl.CenterUorPoint = centerPoint.DrPointDbl;
 
             // Update the main view in SPR
             SprStatus = DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         public void SetEyePoint(double east, double north, double elevation)
@@ -1454,12 +1472,16 @@ namespace SharpPlant.SharpPlantReview
 
             // Set the view object as the SPR Application main view
             SprStatus = DrApi.ViewGetDbl(0, ref objViewdataDbl);
+            if (SprStatus != 0)
+                throw SprException;
 
             // Apply the updated eyepoint
             objViewdataDbl.EyeUorPoint = eyePoint.DrPointDbl;
 
             // Update the main view in SPR
             SprStatus = DrApi.ViewSetDbl(0, ref objViewdataDbl);
+            if (SprStatus != 0)
+                throw SprException;
         }
 
         #endregion

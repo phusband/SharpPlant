@@ -1,5 +1,5 @@
 ﻿//
-//  Copyright © 2013 Parrish Husband (parrish.husband@gmail.com)
+//  Copyright © 2014 Parrish Husband (parrish.husband@gmail.com)
 //  The MIT License (MIT) - See LICENSE.txt for further details.
 //
 
@@ -224,7 +224,7 @@ namespace SharpPlant.SharpPlantReview
         internal static void FormatSnapshot(string imagePath, SprSnapshotFormat format)
         {
             // Get the saved image
-            string finalImage = string.Empty;
+            string finalImage;
             var curImage = Image.FromFile(imagePath);
             var result = new Bitmap(curImage.Width, curImage.Height);
 
