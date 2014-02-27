@@ -11,11 +11,11 @@ using System.Linq;
 
 namespace SharpPlant.SharpPlantReview
 {
-    public abstract class SprDbObjectCollection<T> : ICollection<T> where T : SprDbObject, new()
+    public abstract class SprDbObjectCollection<TObject> : ICollection<TObject>, IEnumerable<TObject> where TObject : SprDbObject, new()
     {
         #region Properties
 
-        internal List<T> innerCollection;
+        internal List<TObject> innerCollection;
 
         public SprApplication Application { get; private set; }
 
@@ -42,9 +42,9 @@ namespace SharpPlant.SharpPlantReview
         }
         private DataTable table;
 
-        public T this[int index]
+        public TObject this[int index]
         {
-            get { return (T)innerCollection[index]; }
+            get { return (TObject)innerCollection[index]; }
             set { innerCollection[index] = value; }
         }
 
@@ -52,12 +52,12 @@ namespace SharpPlant.SharpPlantReview
         ///     Gets or sets elements at the specified SprDbObject Id.
         /// </summary>
         /// <param name="Id">The string Id of the SprDbObject to get or set.</param>
-        public T this[string Id]
+        public TObject this[string Id]
         {
-            get { return (T)innerCollection.First(o => o.Id.ToString() == Id); }
+            get { return (TObject)innerCollection.First(o => o.Id.ToString() == Id); }
             set
             {
-                var tag = (T)innerCollection.First(o => o.Id.ToString() == Id);
+                var tag = (TObject)innerCollection.First(o => o.Id.ToString() == Id);
                 tag = value;
             }
         }
@@ -70,7 +70,7 @@ namespace SharpPlant.SharpPlantReview
         protected SprDbObjectCollection(SprApplication application)
         {
             Application = application;
-            innerCollection = new List<T>();
+            innerCollection = new List<TObject>();
 
             Refresh();
         }
@@ -91,7 +91,7 @@ namespace SharpPlant.SharpPlantReview
 
             foreach (DataRow objRow in updatedTable.Rows)
             {
-                var dbObj = new T();
+                var dbObj = new TObject();
                 dbObj.Row.ItemArray = objRow.ItemArray;
                 innerCollection.Add(dbObj);
             }
@@ -106,7 +106,7 @@ namespace SharpPlant.SharpPlantReview
         ///     Adds a SprDbObject as a new row in the Mdb table.
         /// </summary>
         /// <param name="tag">The SprDbObject to be written to the database.</param>
-        public virtual void Add(T item)
+        public virtual void Add(TObject item)
         {
             if (!Contains(item.Id))
             {
@@ -151,9 +151,9 @@ namespace SharpPlant.SharpPlantReview
         ///     Determines whether a SprDbObject is in the collection.
         /// </summary>
         /// <param name="item">The SprDbObject to search for.</param>
-        public virtual bool Contains(T item)
+        public virtual bool Contains(TObject item)
         {
-            foreach (T dbObj in innerCollection)
+            foreach (TObject dbObj in innerCollection)
             {
                 if (dbObj.Equals(item))
                     return true;
@@ -168,7 +168,7 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="id">The Id of the SprDbObject to search for.</param>
         public virtual bool Contains(int id)
         {
-            foreach (T obj in innerCollection)
+            foreach (TObject obj in innerCollection)
                 if (obj.Id == id)
                     return true;
 
@@ -178,29 +178,34 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     Copies the entire SprDbObject collection to a one-dimensional array.
         /// </summary>
-        public void CopyTo(T[] array, int arrayIndex = 0)
+        public void CopyTo(TObject[] array, int arrayIndex = 0)
         {
             for (int i = arrayIndex; i < innerCollection.Count; i++)
-                array[i] = (T)innerCollection[i];
+                array[i] = (TObject)innerCollection[i];
         }
 
         /// <summary>
         ///     An IEnumerator object that can be used to iterate through the collection.
         /// </summary>
-        public IEnumerator<T> GetEnumerator()
+        public IEnumerator<TObject> GetEnumerator()
         {
             return innerCollection.GetEnumerator();
+            //using (var iter = innerCollection.GetEnumerator())
+            //{
+            //    while (iter.MoveNext())
+            //        yield return iter.Current;
+            //}
         }
         
         /// <summary>
         ///     Removes a specific SprDbObject from the collection.
         /// </summary>
         /// <param name="item">The SprDbObject to remove from the list.</param>
-        public virtual bool Remove(T item)
+        public virtual bool Remove(TObject item)
         {
             for (int i = 0; i < innerCollection.Count; i++)
             {
-                var curObj = (T)innerCollection[i];
+                var curObj = (TObject)innerCollection[i];
                 if (item.Equals(curObj))
                 {
                     innerCollection.RemoveAt(i);

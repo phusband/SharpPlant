@@ -13,7 +13,6 @@ namespace SharpPlant.SharpPlantReview
 {
     public static class SprUtilities
     {
-
         /// <summary>
         ///     Returns a 24-bit color integer.
         /// </summary>
@@ -45,38 +44,40 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="tag">The tag used to determine settings values.</param>
         public static void SetTagRegistry(SprTag tag)
         {
-            // Open the SmartPlant Review tag registry
-            const string regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags\";
-            using (var regKey = Registry.CurrentUser.OpenSubKey(regPath, true))
+            try
             {
-                if (regKey == null)
+                // Open the SmartPlant Review tag registry
+                using (var regKey = Registry.CurrentUser.OpenSubKey(SprConstants.SprTagRegistryPath, true))
                 {
-                    Registry.CurrentUser.CreateSubKey(regPath);
-                    SetTagRegistry(tag);
-                    return;
+                    if (regKey == null)
+                    {
+                        Registry.CurrentUser.CreateSubKey(SprConstants.SprTagRegistryPath);
+                        SetTagRegistry(tag);
+                        return;
+                    }
+
+                    var tagAtts = new List<Tuple<string, object, RegistryValueKind>>
+                    {
+                        new Tuple<string, object, RegistryValueKind>("BackgndColor", Get0Bgr(tag.BackgroundColor), RegistryValueKind.DWord),
+                        new Tuple<string, object, RegistryValueKind>("ComputerName", tag.ComputerName, RegistryValueKind.String),
+                        new Tuple<string, object, RegistryValueKind>("Creator", tag.Creator, RegistryValueKind.String),
+                        new Tuple<string, object, RegistryValueKind>("Discipline", tag.Discipline, RegistryValueKind.String),
+                        new Tuple<string, object, RegistryValueKind>("LeaderColor", Get0Bgr(tag.LeaderColor), RegistryValueKind.DWord),
+                        new Tuple<string, object, RegistryValueKind>("Status", tag.Status, RegistryValueKind.String),
+                        new Tuple<string, object, RegistryValueKind>("TextColor", Get0Bgr(tag.TextColor), RegistryValueKind.DWord)
+                    };
+
+                    foreach (var att in tagAtts)
+                    {
+                        var valString = string.Format("Default{0}", att.Item1);
+                        regKey.SetValue(valString, att.Item2, att.Item3);
+                    }
                 }
-
-                // Create a three-variable list containing the subkey name, value and type.
-                var tagAtts = new List<Tuple<string, object, RegistryValueKind>>
-                {
-                    new Tuple<string, object, RegistryValueKind>("BackgndColor", Get0Bgr(tag.BackgroundColor), RegistryValueKind.DWord),
-                    new Tuple<string, object, RegistryValueKind>("ComputerName", tag.ComputerName, RegistryValueKind.String),
-                    new Tuple<string, object, RegistryValueKind>("Creator", tag.Creator, RegistryValueKind.String),
-                    new Tuple<string, object, RegistryValueKind>("Discipline", tag.Discipline, RegistryValueKind.String),
-                    new Tuple<string, object, RegistryValueKind>("LeaderColor", Get0Bgr(tag.LeaderColor), RegistryValueKind.DWord),
-                    new Tuple<string, object, RegistryValueKind>("Status", tag.Status, RegistryValueKind.String),
-                    new Tuple<string, object, RegistryValueKind>("TextColor", Get0Bgr(tag.TextColor), RegistryValueKind.DWord)
-                };
-
-                // Iterate through the attributes
-                foreach (var att in tagAtts)
-                {
-                    // Get the subkey name (prefixed with "Default" per Spr formatting)
-                    var valString = string.Format("Default{0}", att.Item1);
-
-                    // Set the subkey values from the current tuple
-                    regKey.SetValue(valString, att.Item2, att.Item3);
-                }
+            }
+            catch (System.Security.SecurityException)
+            {
+                throw new SprException("Access to the SmartPlant Review registry denied.\n{0}",
+                                       SprConstants.SprTagRegistryPath);
             }
         }
 
@@ -85,22 +86,24 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public static void ClearTagRegistry()
         {
-            // Open the SmartPlant Review tag registry
-            const string regPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags";
-            using (var regKey = Registry.CurrentUser.OpenSubKey(regPath, true))
+            try
             {
-                // Get the list of values
-                var values = regKey.GetValueNames();
-
-                // Iterate through the values
-                foreach (var t in values)
+                // Open the SmartPlant Review tag registry
+                using (var regKey = Registry.CurrentUser.OpenSubKey(SprConstants.SprTagRegistryPath, true))
                 {
-                    // Delete the current value
-                    regKey.DeleteValue(t);
+                    var values = regKey.GetValueNames();
+
+                    foreach (var t in values)
+                        regKey.DeleteValue(t);
                 }
             }
+            catch (System.Security.SecurityException)
+            {
+                throw new SprException("Access to the SmartPlant Review registry denied.\n{0}",
+                                       SprConstants.SprTagRegistryPath);
+            }
         }
-		
+
         /// <summary>
         ///     Checks for errors from a status returned by a DrApi function.
         /// </summary>
@@ -108,12 +111,12 @@ namespace SharpPlant.SharpPlantReview
         public static void ErrorCheck(int status)
         {
             var sprApp = SprApplication.ActiveApplication;
-            if (sprApp == null)
+            if (sprApp == null || !sprApp.IsConnected)
                 throw SprExceptions.SprNotConnected;
 
             if (status == 0)
                 return;
-            
+
             var errorString = string.Empty;
             sprApp.DrApi.ErrorString(status, out errorString);
 

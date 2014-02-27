@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.ComponentModel;
 
 namespace SharpPlant.SharpPlantReview
 {
     public enum SprNativeMethods
     {
-        AddFilesToProject,
-        AnnotationCreateDbl,
+        
+        AddFilesToProject = 1,
+        AnnotationCreateDbl = 1,
         AnnotationDataGet,
         AnnotationDataSet,
         AnnotationDelete,
@@ -41,6 +43,7 @@ namespace SharpPlant.SharpPlantReview
         ErrorStatusString,
         ErrorString,
         ExitViewer,
+        ExportVue,
         FileCountGet,
         FileNameFromNumber,
         FileNumberFromName,

@@ -9,10 +9,10 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
-using System.Reflection;
 
 namespace SharpPlant.SharpPlantReview
 {
@@ -35,16 +35,16 @@ namespace SharpPlant.SharpPlantReview
             {
                 get
                 {
-                    if (applicationWindow == null)
-                        applicationWindow = GetWindow(SprWindowType.ApplicationWindow);
-                    return applicationWindow;
+                    if (_applicationWindow == null)
+                        _applicationWindow = GetWindow(SprWindowType.ApplicationWindow);
+                    return _applicationWindow;
                 }
                 set
                 {
-                    applicationWindow = value;
+                    _applicationWindow = value;
                 }
             }
-            private SprWindow applicationWindow;
+            private SprWindow _applicationWindow;
 
             /// <summary>
             ///     The Elevation window inside the SmartPlant Review application.
@@ -53,16 +53,16 @@ namespace SharpPlant.SharpPlantReview
             {
                 get
                 {
-                    if (elevationWindow == null)
-                        elevationWindow = GetWindow(SprWindowType.ElevationWindow);
-                    return elevationWindow;
+                    if (_elevationWindow == null)
+                        _elevationWindow = GetWindow(SprWindowType.ElevationWindow);
+                    return _elevationWindow;
                 }
                 set
                 {
-                    applicationWindow = value;
+                    _elevationWindow = value;
                 }
             }
-            private SprWindow elevationWindow;
+            private SprWindow _elevationWindow;
 
             /// <summary>
             ///     The Main view window inside the SmartPlant Review application.
@@ -71,16 +71,16 @@ namespace SharpPlant.SharpPlantReview
             {
                 get
                 {
-                    if (mainWindow == null)
-                        mainWindow = GetWindow(SprWindowType.MainWindow);
-                    return mainWindow;
+                    if (_mainWindow == null)
+                        _mainWindow = GetWindow(SprWindowType.MainWindow);
+                    return _mainWindow;
                 }
                 set
                 {
-                    mainWindow = value;
+                    _mainWindow = value;
                 }
             }
-            private SprWindow mainWindow;
+            private SprWindow _mainWindow;
 
             /// <summary>
             ///     The Plan view window inside the SmartPlant Review application.
@@ -89,16 +89,16 @@ namespace SharpPlant.SharpPlantReview
             {
                 get
                 {
-                    if (planWindow == null)
-                        planWindow = GetWindow(SprWindowType.PlanWindow);
-                    return planWindow;
+                    if (_planWindow == null)
+                        _planWindow = GetWindow(SprWindowType.PlanWindow);
+                    return _planWindow;
                 }
                 set
                 {
-                    planWindow = value;
+                    _planWindow = value;
                 }
             }
-            private SprWindow planWindow;
+            private SprWindow _planWindow;
 
             /// <summary>
             ///     The Text window inside the SmartPlant Review application.
@@ -107,26 +107,26 @@ namespace SharpPlant.SharpPlantReview
             {
                 get
                 {
-                    if (textWindow == null)
-                        textWindow = (SprTextWindow)GetWindow(SprWindowType.TextWindow);
-                    return textWindow;
+                    if (_textWindow == null)
+                        _textWindow = (SprTextWindow)GetWindow(SprWindowType.TextWindow);
+                    return _textWindow;
                 }
                 set
                 {
-                    textWindow = value;
+                    _textWindow = value;
                 }
             }
-            private SprTextWindow textWindow;
+            private SprTextWindow _textWindow;
 
             internal SprApplicationWindows(SprApplication application)
             {
                 Application = application;
 
-                applicationWindow = GetWindow(SprWindowType.ApplicationWindow);
-                elevationWindow = GetWindow(SprWindowType.ElevationWindow);
-                mainWindow = GetWindow(SprWindowType.MainWindow);
-                planWindow = GetWindow(SprWindowType.PlanWindow);
-                textWindow = (SprTextWindow)GetWindow(SprWindowType.TextWindow);
+                _applicationWindow = GetWindow(SprWindowType.ApplicationWindow);
+                _elevationWindow = GetWindow(SprWindowType.ElevationWindow);
+                _mainWindow = GetWindow(SprWindowType.MainWindow);
+                _planWindow = GetWindow(SprWindowType.PlanWindow);
+                _textWindow = (SprTextWindow)GetWindow(SprWindowType.TextWindow);
             }
 
             private SprWindow GetWindow(SprWindowType type)
@@ -167,20 +167,20 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public DataSet MdbDatabase
         {
-            get { return mdbDatabase ?? (mdbDatabase = GetMdbDatabase()); }
-            internal set { mdbDatabase = value; }
+            get { return _mdbDatabase ?? (_mdbDatabase = GetMdbDatabase()); }
+            internal set { _mdbDatabase = value; }
         }
-        private DataSet mdbDatabase;
+        private DataSet _mdbDatabase;
 
         /// <summary>
         ///     The SprAnnotation collection from the current MDB database.
         /// </summary>
-        public SprAnnotationCollection Annotations
-        {
-            get { return annotations ?? (annotations = new SprAnnotationCollection(this)); }
-            set { annotations = value; }
-        }
-        private SprAnnotationCollection annotations;
+        public SprAnnotationCollection Annotations { get { return _annotations; } }
+        //{
+        //    get { return annotations ?? (annotations = new SprAnnotationCollection(this)); }
+        //    set { annotations = value; }
+        //}
+        private SprAnnotationCollection _annotations;
 
         /// <summary>
         ///     The default properties used when an SprSnapshot is omitted from snapshot methods.
@@ -190,11 +190,11 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     Gets a list of the design files loaded into the active review session.
         /// </summary>
-        public List<string> DesignFiles
+        public ICollection<string> DesignFiles
         {
-            get { return designFiles ?? (designFiles = GetDesignFiles()); }
+            get { return _designFiles ?? (_designFiles = GetDesignFiles()); }
         }
-        private List<string> designFiles;
+        private ICollection<string> _designFiles;
 
         /// <summary>
         ///     Determines if the SmartPlant Review application is busy.
@@ -223,9 +223,9 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string MdbPath
         {
-            get { return mdbPath ?? (mdbPath = GetMdbPath()); }
+            get { return _mdbPath ?? (_mdbPath = GetMdbPath()); }
         }
-        private string mdbPath;
+        private string _mdbPath;
 
         /// <summary>
         ///     Gets the next annotation number to be used.
@@ -234,17 +234,17 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (nextAnnotation == 0)
-                    nextTag = GetNextAnnotation();
-                return nextAnnotation;
+                if (_nextAnnotation == 0)
+                    _nextTag = GetNextAnnotation();
+                return _nextAnnotation;
             }
             set 
             {
                 SetNextAnnotation(value);
-                nextAnnotation = value;
+                _nextAnnotation = value;
             }
         }
-        private int nextAnnotation;
+        private int _nextAnnotation;
 
         /// <summary>
         ///     Gets the next tag number to be used.
@@ -253,17 +253,17 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (nextTag == 0)
-                    nextTag = GetNextTag();
-                return nextTag;
+                if (_nextTag == 0)
+                    _nextTag = GetNextTag();
+                return _nextTag;
             }
             set
             {
                 SetNextTag(value);
-                nextTag = value;
+                _nextTag = value;
             }
         }
-        private int nextTag;
+        private int _nextTag;
 
         /// <summary>
         ///     Gets the process ID of the SmartPlant Review application.
@@ -272,56 +272,56 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (processId == IntPtr.Zero)
-                    processId = GetProcessId();
-                return processId;
+                if (_processId == IntPtr.Zero)
+                    _processId = GetProcessId();
+                return _processId;
             }
         }
-        private IntPtr processId;
+        private IntPtr _processId;
 
         /// <summary>
         ///     Gets the filename of the active review session.
         /// </summary>
         public string SessionName
         {
-            get { return sessionName ?? (sessionName = GetSessionName()); }
+            get { return _sessionName ?? (_sessionName = GetSessionName()); }
         }
-        private string sessionName;
+        private string _sessionName;
 
         /// <summary>
         ///     The returned result from the most recent DrApi function call.
         /// </summary>
-        public int SprStatus
+        public int SprStatus //{ get; private set;}
         {
-            get { return sprStatus; }
+            get { return _sprStatus; }
             internal set
             {
-                sprStatus = value;
+                _sprStatus = value;
 
                 // Handle the errors
                 SprUtilities.ErrorCheck(value);
             }
         }
-        private int sprStatus;
+        private int _sprStatus;
 
         /// <summary>
         ///     The SprTag collection from the current MDB database.
         /// </summary>
-        public SprTagCollection Tags
-        {
-            get { return tags ?? (tags = new SprTagCollection(this)); }
-            set { tags = value; }
-        }
-        private SprTagCollection tags;
+        public SprTagCollection Tags { get { return _tags; } }
+        //{
+        //    get { return tags ?? (tags = new SprTagCollection(this)); }
+        //    set { tags = value; }
+        //}
+        private SprTagCollection _tags;
 
         /// <summary>
         ///     Gets the version of the running instance of SmartPlant Review.
         /// </summary>
         public string Version
         {
-            get { return version; }
+            get { return _version; }
         }
-        private readonly string version;
+        private readonly string _version;
 
         /// <summary>
         ///     Represents a structure comntaining the SprApplication Windows.
@@ -360,20 +360,27 @@ namespace SharpPlant.SharpPlantReview
             SprSnapShot.TempDirectory = Environment.GetEnvironmentVariable("TEMP");
             SprSnapShot.DefaultDirectory = Environment.SpecialFolder.MyPictures.ToString();
 
-            // Set the startup fields
-            version = GetVersion();
-            mdbPath = GetMdbPath();
-            mdbDatabase = GetMdbDatabase();
-            sessionName = GetSessionName();
-            nextTag = GetNextTag();
-            nextAnnotation = GetNextAnnotation();
-            processId = GetProcessId();
-            sprStatus = 0;
-            designFiles = GetDesignFiles();
-            tags = new SprTagCollection(this);
-            
-            // Windows
-            Windows = new SprApplicationWindows(this);
+            if (IsConnected)
+            {
+                // Set the startup fields
+                _version = GetVersion();
+                _mdbPath = GetMdbPath();
+                _mdbDatabase = GetMdbDatabase();
+                _sessionName = GetSessionName();
+                _nextTag = GetNextTag();
+                _nextAnnotation = GetNextAnnotation();
+                _processId = GetProcessId();
+                _designFiles = GetDesignFiles();
+
+                // Windows
+                Windows = new SprApplicationWindows(this);
+
+                // DbObjects
+                _annotations = new SprAnnotationCollection(this);
+                _tags = new SprTagCollection(this);
+            }
+
+            SprStatus = 0;
         }
 
         /// <summary>
@@ -393,16 +400,14 @@ namespace SharpPlant.SharpPlantReview
             if (!IsConnected)
                 return null;
 
-            string sessionName = null;
+            var sessionName = string.Empty;
 
             // Set the DrApi global options to return the file name
             //SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
             GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
             
             // Get the session file name
-            //SprStatus = DrApi.FileNameFromNumber(0, ref sessionName);
-            var result = Run(SprNativeMethods.FileNameFromNumber, 0, sessionName);
-            sessionName = (string)result[1];
+            SprStatus = DrApi.FileNameFromNumber(0, ref sessionName);
 
             return sessionName;
         }
@@ -416,18 +421,13 @@ namespace SharpPlant.SharpPlantReview
             var mdbName = string.Empty;
 
             // Set the DrApi global options to return the file name
-            //SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
-            GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
+            SprStatus = DrApi.GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 1);
 
             // MDB Name
-            //SprStatus = DrApi.FileNameFromNumber(1, ref mdbName);
-            var result = Run(SprNativeMethods.FileNameFromNumber, 1, mdbName);
-            mdbName = (string)result[1];
-            
+            SprStatus = DrApi.FileNameFromNumber(1, ref mdbName);
+
             // MDB Directory
-            //SprStatus = DrApi.FilePathFromNumber(1, ref dirPath);
-            result = Run(SprNativeMethods.FilePathFromNumber, 1, dirPath);
-            dirPath = (string)result[1];
+            SprStatus = DrApi.FilePathFromNumber(1, ref dirPath);
 
             if (dirPath != null && mdbName != null)
                 return Path.Combine(dirPath, mdbName);
@@ -439,11 +439,10 @@ namespace SharpPlant.SharpPlantReview
             if (!IsConnected)
                 return IntPtr.Zero;
 
-            var procId = default(uint);
-            //SprStatus = DrApi.ProcessIdGet(out procId);
-            var result = Run(SprNativeMethods.ProcessIdGet, procId);
+            int procId = 0;
+            SprStatus = DrApi.vbProcessIdGet(out procId);
 
-            return (IntPtr)result[0];
+            return (IntPtr)(procId);
         }
         private bool CheckIsBusy()
         {
@@ -462,34 +461,41 @@ namespace SharpPlant.SharpPlantReview
         }
         private int GetNextAnnotation()
         {
+            if (!IsConnected)
+                return 0;
+
             // Get the next annotation number
             var siteTable = MdbDatabase.Tables["site_table"];
             return (int)siteTable.Rows[0]["next_text_anno_id"];
         }
         private int GetNextTag()
         {
-            // Get the next tag number
-            var returnTag = default(uint);
-            //SprStatus = DrApi.TagNextNumber(out returnTag, 0);
-            var result = Run(SprNativeMethods.TagNextNumber, returnTag);
+            if (!IsConnected)
+                return 0;
 
-            return Convert.ToInt32(result[0]);
+            // Get the next tag number
+            var returnTag = 0;
+            SprStatus = DrApi.TagNextNumber(out returnTag, 0);
+
+            return returnTag;
         }
         private string GetVersion()
         {
             if (!IsConnected)
                 return null;
 
-            string vers = null;
+            string vers = string.Empty;
 
             // Get the version of the SPR Application
-            //SprStatus = DrApi.Version(ref vers);
-            var result = Run(SprNativeMethods.Version, vers);
+            SprStatus = DrApi.Version(ref vers);
 
-            return (string)result[0];
+            return vers;
         }
         private DataSet GetMdbDatabase()
         {
+            if (!IsConnected)
+                return null;
+
             // TODO:  Add a DbMethod for returning a set of tables so that a single Db connection can be used 
             var tables = new string[] { "tag_data", "site_table", "text_annotations", "text_annotation_types" };
 
@@ -502,12 +508,13 @@ namespace SharpPlant.SharpPlantReview
         }
         private List<string> GetDesignFiles()
         {
+            if (!IsConnected)
+                return null;
+
             GlobalOptionsSet(SprConstants.SprGlobalFileInfoMode, 0);
 
-            var fileCount = default(uint);
-            //SprStatus = DrApi.FileCountGet(out fileCount);
-            var result = Run(SprNativeMethods.FileCountGet, fileCount);
-            fileCount = Convert.ToUInt32(result[0]);
+            var fileCount = 0;
+            SprStatus = DrApi.FileCountGet(out fileCount);
 
             var returnList = new List<string>();
 
@@ -569,12 +576,39 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="method">The SprNativeMethod to invoke.</param>
         /// <param name="args">The arguments passed to the method.</param>
         /// <returns>The object array returned from the method.</returns>
-        public object[] Run(SprNativeMethods method, params object[] args)
+        ///        
+        private object[] Run(SprNativeMethods method, params object[] args)
         {
-            SprStatus =  DrApi.InvokeMember(method.ToString(), BindingFlags.InvokeMethod | BindingFlags.Public,
-                                           null, null, args);
+            var methodName = method.ToString();
+            var p = new ParameterModifier(args.Length);
+            for (int i = 0; i < args.Length; i++)
+                p[i] = true;
+            ParameterModifier[] mods = { p };
+
+            MethodInfo mInfo = SprImportedTypes.DrApi.GetMethod(methodName, BindingFlags.Instance |
+                                                                        BindingFlags.NonPublic |
+                                                                        BindingFlags.Static);
+
+
+            SprStatus = Convert.ToInt32(SprImportedTypes.DrApi.InvokeMember(methodName, BindingFlags.InvokeMethod,
+                                                            null, DrApi, args, mods, null, null));
+
+            SprUtilities.ErrorCheck(SprStatus);
 
             return args;
+        }
+
+        static MethodInfo GetPrivateMethod(Type type, string name)
+        {
+            MethodInfo retVal;
+            do
+            {
+                retVal = type.GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                if (retVal != (object)null)
+                    break;
+                type = type.BaseType;
+            } while (type != (object)null);
+            return retVal;
         }
 
         #endregion
@@ -638,13 +672,13 @@ namespace SharpPlant.SharpPlantReview
             SprStatus = DrApi.SessionAttach(fileName);
 
             // Set the session vars
-            mdbPath = GetMdbPath();
-            mdbDatabase = GetMdbDatabase();
-            sessionName = GetSessionName();
-            nextTag = GetNextTag();
-            nextAnnotation = GetNextAnnotation();
-            designFiles = GetDesignFiles();
-            tags = new SprTagCollection(this);
+            _mdbPath = GetMdbPath();
+            _mdbDatabase = GetMdbDatabase();
+            _sessionName = GetSessionName();
+            _nextTag = GetNextTag();
+            _nextAnnotation = GetNextAnnotation();
+            _designFiles = GetDesignFiles();
+            _tags = new SprTagCollection(this);
         }
 
         /// <summary>
@@ -794,7 +828,10 @@ namespace SharpPlant.SharpPlantReview
                                                          ref targetPoint.DrPointDbl, out objId, flag);
 
             // Return null if the locate operation was aborted
-            return abort != 0 ? returnPoint : null;
+            if (abort == 0)
+                return returnPoint;
+            return null;
+            //return abort != 0 ? returnPoint : null;
         }
 
         /// <summary>

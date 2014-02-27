@@ -10,6 +10,10 @@ namespace SharpPlant.SharpPlantReview
     /// </summary>
     public static class SprConstants
     {
+        // Registry
+        public const string SprRegistryPath = @"Software\Intergraph\SmartPlant Review\";
+        public const string SprTagRegistryPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags\";
+
         // General
         public const int SprClearTextWindow = 1;
 

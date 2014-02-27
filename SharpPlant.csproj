@@ -66,8 +66,11 @@
     <Compile Include="DbMethods.cs" />
     <Compile Include="NativeWin32.cs" />
     <Compile Include="SharpPlantReview\SprAnnotation.cs" />
+    <Compile Include="SharpPlantReview\SprAnnotationCollection.cs" />
     <Compile Include="SharpPlantReview\SprApplication.cs" />
     <Compile Include="SharpPlantReview\SprConstants.cs" />
+    <Compile Include="SharpPlantReview\SprDbObject.cs" />
+    <Compile Include="SharpPlantReview\SprDbObjectCollection.cs" />
     <Compile Include="SharpPlantReview\SprDisplaySet.cs" />
     <Compile Include="SharpPlantReview\SprExceptions.cs" />
     <Compile Include="SharpPlantReview\SprImportedTypes.cs" />
@@ -75,6 +78,7 @@
     <Compile Include="SharpPlantReview\SprMeasurement.cs" />
     <Compile Include="SharpPlantReview\SprMeasurementCollection.cs" />
     <Compile Include="SharpPlantReview\SprMeasurementType.cs" />
+    <Compile Include="SharpPlantReview\SprNativeMethods.cs" />
     <Compile Include="SharpPlantReview\SprObject.cs" />
     <Compile Include="SharpPlantReview\SprPoint3D.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -88,7 +92,6 @@
     <Compile Include="SharpPlantReview\SprWindow.cs" />
     <Compile Include="SharpPlantReview\SprWindowType.cs" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

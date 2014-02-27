@@ -84,9 +84,13 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     Date the tag was placed.  If the tag has not been placed, the value is N/A.
         /// </summary>
-        public string DatePlaced
+        public String DatePlaced
         {
-            get { return IsPlaced ? Row["date_placed"].ToString() : "N/A"; }
+            get
+            {
+                return Row["date_placed"] == DBNull.Value ? Row["date_placed"].ToString() : "N/A";
+                //return date = string.erm (date = DateTime.;
+            }
             internal set { if (IsPlaced) Row["date_placed"] = value; }
         }
 
@@ -245,7 +249,8 @@ namespace SharpPlant.SharpPlantReview
         // Getter Methods
         protected override DataRow GetDefaultRow()
         {
-            var tagTable = SprApplication.ActiveApplication.Tags.Table;
+            var tagTable = SprApplication.ActiveApplication.MdbDatabase.Tables["tag_data"];
+            //var tagTable = SprApplication.ActiveApplication.Tags.Table;
             var tagRow = tagTable.NewRow();
             tagRow["tag_unique_id"] = 0;
             tagRow["tag_size"] = 0;
@@ -485,18 +490,22 @@ namespace SharpPlant.SharpPlantReview
                 return;
             }
 
-            var currentObject = Application.GetObjectData(objId);
+            linkedObject = Application.GetObjectData(objId);
 
             Flags |= SprConstants.SprTagLabel;
+            Id = Application.NextTag;
 
             // Set the tag registry values
             SprUtilities.SetTagRegistry(this);
 
             // Place the tag
             Application.SprStatus = Application.DrApi.TagSetDbl(Id, 0, Flags, ref tagLeader.DrPointDbl,
-                                            ref tagOrigin.DrPointDbl, currentObject.Linkage.DrKey, Text);
+                                            ref tagOrigin.DrPointDbl, LinkedObject.Linkage.DrKey, Text);
 
-            Update();
+            leaderPoint = tagLeader;
+            originPoint = tagOrigin;
+
+            Refresh();
 
             // Clear the tag registry
             SprUtilities.ClearTagRegistry();

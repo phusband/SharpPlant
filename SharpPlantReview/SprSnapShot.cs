@@ -213,8 +213,8 @@ namespace SharpPlant.SharpPlantReview
             }
 
             // Set the default size based on the main window 
-            if (Application.IsConnected) Height = Application.Windows.MainWindow.Height;
-            if (Application.IsConnected) Width = Application.Windows.MainWindow.Width;
+            //if (Application.IsConnected) Height = Application.Windows.MainWindow.Height;
+            //if (Application.IsConnected) Width = Application.Windows.MainWindow.Width;
         }
 
         #endregion

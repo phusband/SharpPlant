@@ -31,7 +31,7 @@ namespace SharpPlant.SharpPlantReview
         internal SprAnnotationCollection() : this(SprApplication.ActiveApplication) { }
         internal SprAnnotationCollection(SprApplication application) : base(application)
         {
-            SetVisibility(false);
+            //SetVisibility(false);
         }
 
         #endregion
@@ -40,7 +40,8 @@ namespace SharpPlant.SharpPlantReview
 
         protected override DataTable GetTable()
         {
-            return Application.Annotations.Table;
+            return Application.MdbDatabase.Tables["text_annotations"];
+            //return Application.Annotations.Table;
         }
 
         /// <summary>

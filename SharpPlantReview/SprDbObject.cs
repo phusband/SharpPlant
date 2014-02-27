@@ -42,7 +42,7 @@ namespace SharpPlant.SharpPlantReview
         public int Id
         {
             get { return Convert.ToInt32(Row[IdKey]); }
-            private set { Row[IdKey] = value; }
+            internal set { Row[IdKey] = value; }
         }
 
         /// <summary>
@@ -66,14 +66,15 @@ namespace SharpPlant.SharpPlantReview
         #region Constructors
 
         protected SprDbObject()
-        {
-            Application = SprApplication.ActiveApplication;
+        {   
             row = DefaultRow;
+            Application = SprApplication.ActiveApplication;
         }
         protected SprDbObject(DataRow datarow)
         {
-            Application = SprApplication.ActiveApplication;
             row = datarow;
+            Application = SprApplication.ActiveApplication;
+            
         }
 
         #endregion
@@ -96,7 +97,11 @@ namespace SharpPlant.SharpPlantReview
             var updatedTable = DbMethods.GetDbTable(Application.MdbPath, TableName);
             var updatedRow = updatedTable.Rows.Find((object)Id);
 
-            row.ItemArray = updatedRow.ItemArray;
+            row = updatedRow;
+
+            if (row.RowState == DataRowState.Detached)
+                row.Table.Rows.Add(row);
+
             row.AcceptChanges();
         }
 

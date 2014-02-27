@@ -357,7 +357,7 @@ namespace SharpPlant.SharpPlantReview
 
             SendToTextWindow();
             //Application.SprStatus = Application.DrApi.ViewUpdate(1);
-            Application.Run(SprNativeMethods.ViewUpdate, 1);
+            //Application.Run(SprNativeMethods.ViewUpdate, 1);
         }
 
 
@@ -396,14 +396,11 @@ namespace SharpPlant.SharpPlantReview
             CenterPoint = centerPoint;
 
             // Place the annotation on screen
-            var annoId = default(uint);
-            //Application.SprStatus = Application.DrApi.AnnotationCreateDbl(Type, ref DrAnnotationDbl, out Id);
-            var result = Application.Run(SprNativeMethods.AnnotationCreateDbl, Type, DrAnnotationDbl, annoId);
-            annoId = Convert.ToInt32(result[2]);
+            var annoId = 0;
+            //Application.SprStatus = Application.DrApi.AnnotationCreateDbl(Type, ref DrAnnotationDbl, out annoId);
 
             // Link the located object to the annotation
             //SprStatus = DrApi.AnnotationDataSet(annoId, anno.Type, ref drAnno, ref objId);
-            result = Application.Run(SprNativeMethods.AnnotationDataSet, Type, DrAnnotationDbl, annoId);
 
             Refresh();
             // Retrieve the placed annotation data

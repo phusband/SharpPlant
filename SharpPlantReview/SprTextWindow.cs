@@ -19,13 +19,12 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (text == null)
-                    text = GetText();
+                RefreshText();
                 return text;
             }
             set
             {
-                Update(Title, value);
+                UpdateText();
                 text = value;
             }
         }
@@ -36,15 +35,14 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public string Title
         {
-            get
+            get 
             {
-                if (title == null)
-                    title = GetTitle();
+                RefreshText();
                 return title;
             }
             set
             {
-                Update(Text, value);
+                UpdateText();
                 title = value;
             }
         }
@@ -56,50 +54,53 @@ namespace SharpPlant.SharpPlantReview
 
         internal SprTextWindow(SprApplication application) : base(application, SprWindowType.TextWindow)
         {
-            text = GetText();
-            title = GetTitle();
+            RefreshText();
         }
 
         #endregion
 
         #region Methods
 
-        private string GetText()
+        private void RefreshText()
         {
             if (!Application.IsConnected)
                 throw SprExceptions.SprNotConnected;
 
-            var orgTitle = string.Empty;
-            var orgText = string.Empty;
-            int orgLength;
+            var orgTitle = title;
+            var orgText = text;
+            int orgLength = 0;
 
-            // Get the existing text window values
-            Application.SprStatus = Application.DrApi.TextWindowGet(ref orgTitle, out orgLength, ref orgText);
-
-            // Set an empty string for null values
-            return orgText ?? (string.Empty);
+            try
+            {
+                // Get the existing text window values
+                Application.SprStatus = Application.DrApi.TextWindowGet(ref orgTitle, out orgLength, ref orgText);
+            }
+            catch (SprException)
+            {
+                return;
+            }
+            finally
+            {
+                text = orgText;
+                title = orgTitle;
+            }
         }
-        private string GetTitle()
+        private void UpdateText()
         {
             if (!Application.IsConnected)
                 throw SprExceptions.SprNotConnected;
 
-            var orgTitle = string.Empty;
-            var orgText = string.Empty;
-            int orgLength;
+            var flags = 0;
+            flags |= SprConstants.SprClearTextWindow;
 
-            // Get the existing text window values
-            Application.SprStatus = Application.DrApi.TextWindowGet(ref orgTitle, out orgLength, ref orgText);
+            if (title == null)
+                title = "Text View";
 
-            // Return the title, empty string if null
-            return orgTitle ?? (string.Empty);
-        }
-        private void Update(string mainText, string titleText)
-        {
-            if (!Application.IsConnected)
-                throw SprExceptions.SprNotConnected;
+            if (text == null)
+                text = string.Empty;
 
-            Application.SprStatus = Application.DrApi.TextWindow(SprConstants.SprClearTextWindow, titleText, mainText, 0);
+            // Get the text window values
+            Application.SprStatus = Application.DrApi.TextWindow(flags, title, text, 0);
         }
 
         /// <summary>

@@ -31,7 +31,6 @@ namespace SharpPlant.SharpPlantReview
         internal SprTagCollection() : this(SprApplication.ActiveApplication) { }
         internal SprTagCollection(SprApplication application) : base(application)
         {
-            SetVisibility(SprTagVisibility.None);
         }
 
         #endregion
@@ -40,7 +39,8 @@ namespace SharpPlant.SharpPlantReview
 
         protected override DataTable GetTable()
         {
-            return Application.Tags.Table;
+            return Application.MdbDatabase.Tables["tag_data"];
+            //return Application.Tags.Table;
         }
 
         /// <summary>
