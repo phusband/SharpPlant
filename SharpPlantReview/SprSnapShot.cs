@@ -212,9 +212,12 @@ namespace SharpPlant.SharpPlantReview
                 AntiAlias = Application.DefaultSnapshot.AntiAlias;
             }
 
-            // Set the default size based on the main window 
-            //if (Application.IsConnected) Height = Application.Windows.MainWindow.Height;
-            //if (Application.IsConnected) Width = Application.Windows.MainWindow.Width;
+            if (Application.IsConnected)
+            {
+                // Set the default size based on the main window 
+                Height = Application.Windows.MainWindow.Height;
+                Width = Application.Windows.MainWindow.Width;
+            }            
         }
 
         #endregion
@@ -224,7 +227,7 @@ namespace SharpPlant.SharpPlantReview
         internal static void FormatSnapshot(string imagePath, SprSnapshotFormat format)
         {
             // Get the saved image
-            string finalImage;
+            string finalPath = imagePath;
             var curImage = Image.FromFile(imagePath);
             var result = new Bitmap(curImage.Width, curImage.Height);
 
@@ -246,8 +249,10 @@ namespace SharpPlant.SharpPlantReview
             {
                 // Save as PNG
                 case SprSnapshotFormat.Png:
-                    finalImage = imagePath.Replace(".bmp", ".png");
-                    result.Save(finalImage, ImageFormat.Png);
+                    finalPath = Path.ChangeExtension(imagePath, "png");
+                    if (File.Exists(finalPath))
+                        File.Delete(finalPath);
+                    result.Save(finalPath, ImageFormat.Png);
                     break;
 
                 // Save as JPG
@@ -269,8 +274,10 @@ namespace SharpPlant.SharpPlantReview
                             encodeParams.Param[0] = qualityParam;
 
                             // Save to JPG using the custom encoder
-                            finalImage = imagePath.Replace(".bmp", ".jpg");
-                            result.Save(finalImage, jpgEncoder, encodeParams);
+                            finalPath = Path.ChangeExtension(imagePath, "jpg");
+                            if (File.Exists(finalPath))
+                                File.Delete(finalPath);
+                            result.Save(finalPath, jpgEncoder, encodeParams);
                         }
                     }
                     break;

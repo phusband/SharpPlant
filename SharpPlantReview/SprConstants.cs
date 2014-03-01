@@ -14,6 +14,11 @@ namespace SharpPlant.SharpPlantReview
         public const string SprRegistryPath = @"Software\Intergraph\SmartPlant Review\";
         public const string SprTagRegistryPath = @"Software\Intergraph\SmartPlant Review\Settings\Tags\";
 
+        // MDB Tables
+        public const string MdbTagTable = "tag_data";
+        public const string MdbSiteTable = "site_table";
+        public const string MdbAnnotationTable = "text_annotations";
+
         // General
         public const int SprClearTextWindow = 1;
 

@@ -278,6 +278,10 @@ namespace SharpPlant.SharpPlantReview
 
         #region Methods
 
+        protected override DataRow GetDataRow()
+        {
+            throw new NotImplementedException();
+        }
         protected override DataRow GetDefaultRow()
         {
             var annoTable = SprApplication.ActiveApplication.MdbDatabase.Tables["text_annotations"];

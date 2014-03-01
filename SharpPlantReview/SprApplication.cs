@@ -25,7 +25,7 @@ namespace SharpPlant.SharpPlantReview
             /// <summary>
             ///     The parent Application reference.
             /// </summary>
-            public SprApplication Application { get; private set; }
+            private readonly SprApplication _application;
 
             /// <summary>
             ///     The primary SmartPlant Review application window.
@@ -94,8 +94,7 @@ namespace SharpPlant.SharpPlantReview
 
             internal SprApplicationWindows(SprApplication application)
             {
-                Application = application;
-
+                _application = application;
                 _applicationWindow = GetWindow(SprWindowType.ApplicationWindow);
                 _elevationWindow = GetWindow(SprWindowType.ElevationWindow);
                 _mainWindow = GetWindow(SprWindowType.MainWindow);
@@ -105,12 +104,12 @@ namespace SharpPlant.SharpPlantReview
 
             private SprWindow GetWindow(SprWindowType type)
             {
-                if (!Application.IsConnected)
+                if (!_application.IsConnected)
                     throw SprExceptions.SprNotConnected;
 
-                return type == SprWindowType.TextWindow ? 
-                               new SprTextWindow(Application) : 
-                               new SprWindow(Application, type);
+                return type == SprWindowType.TextWindow
+                                ? new SprTextWindow(_application)
+                                : new SprWindow(_application, type);
             }
         }
 
@@ -295,7 +294,7 @@ namespace SharpPlant.SharpPlantReview
         {
             get { return _version; }
         }
-        private readonly string _version;
+        private string _version;
 
         /// <summary>
         ///     Represents a structure comntaining the SprApplication Windows.
@@ -314,47 +313,8 @@ namespace SharpPlant.SharpPlantReview
         {
             // Set the static application for class parent referencing
             ActiveApplication = this;
-
-            // If only one instance of Spr is running
             if (SprProcesses.Length == 1)
-
-                // Connect to the SPR instance automatically
                 Connect();
-
-            // Create the default snapshot format
-            DefaultSnapshot = new SprSnapShot
-            {
-                AntiAlias = 3,
-                OutputFormat = SprSnapshotFormat.Jpg,
-                AspectOn = true,
-                Scale = 1
-            };
-
-            // Set the default snapshot directories
-            SprSnapShot.TempDirectory = Environment.GetEnvironmentVariable("TEMP");
-            SprSnapShot.DefaultDirectory = Environment.SpecialFolder.MyPictures.ToString();
-
-            if (IsConnected)
-            {
-                // Set the startup fields
-                _version = GetVersion();
-                _mdbPath = GetMdbPath();
-                _mdbDatabase = GetMdbDatabase();
-                _sessionName = GetSessionName();
-                _nextTag = GetNextTag();
-                _nextAnnotation = GetNextAnnotation();
-                _processId = GetProcessId();
-                _designFiles = GetDesignFiles();
-
-                // Windows
-                Windows = new SprApplicationWindows(this);
-
-                // DbObjects
-                _annotations = new SprAnnotationCollection(this);
-                _tags = new SprTagCollection(this);
-            }
-
-            SprStatus = 0;
         }
 
         /// <summary>
@@ -486,12 +446,73 @@ namespace SharpPlant.SharpPlantReview
             var returnSet = new DataSet("MDB Database");
 
             // TODO:  Add a DbMethod for returning a set of tables so that a single Db connection can be used 
-            var tables = new[] { "tag_data", "site_table", "text_annotations", "text_annotation_types" };
+            var tables = new[] { SprConstants.MdbTagTable, SprConstants.MdbSiteTable, SprConstants.MdbAnnotationTable, "text_annotation_types" };
             foreach (var t in tables)
                 returnSet.Tables.Add(DbMethods.GetDbTable(MdbPath, t));
 
             return returnSet;
         }
+
+        // These might be added to an MdbDatabase class
+        internal DataTable RefreshTable(string tableName)
+        {
+            if (MdbDatabase.Tables.Contains(tableName))
+                MdbDatabase.Tables.Remove(tableName);
+
+            var returnTable = DbMethods.GetDbTable(MdbPath, tableName);
+            if (returnTable == null)
+                throw new SprException("Table {0} not retrieved");
+
+            MdbDatabase.Tables.Add(returnTable);
+            return returnTable;
+        }
+        internal DataRow RefreshRow(string tableName, object id)
+        {
+            var existTable = MdbDatabase.Tables[tableName];
+            if (existTable == null)
+                throw new SprException("Table '{0}' not found", tableName);
+
+            var existRow = existTable.Rows.Find(id);
+            if (existRow == null)
+                throw new SprException("No row matching Id '{0}' exists in table '{1}'", id, tableName);
+
+            var newTable = DbMethods.GetDbTable(MdbPath, tableName);
+            if (newTable == null)
+                throw new SprException("Table '{0}' not found", tableName);
+
+            var newRow = newTable.Rows.Find(id);
+            if (newRow == null)
+                throw new SprException("No row matching Id '{0}' exists in table '{1}'", id, tableName);
+
+            existRow.ItemArray = newRow.ItemArray;
+            existRow.AcceptChanges();
+
+            return existRow; // Updated
+        }
+
+        internal void UpdateTable(string tableName)
+        {
+            var existTable = MdbDatabase.Tables[tableName];
+            if (existTable == null)
+                throw new SprException("Table '{0}' not found", tableName);
+
+            DbMethods.UpdateDbTable(MdbPath, existTable);
+        }
+        internal void UpdateRow(string tableName, object id)
+        {
+            var existTable = MdbDatabase.Tables[tableName];
+            if (existTable == null)
+                throw new SprException("Table '{0}' not found", tableName);
+
+            var existRow = existTable.Rows.Find(id);
+            if (existRow == null)
+                throw new SprException("No row matching Id '{0}' exists in table '{1}'", id, tableName);
+
+            DbMethods.UpdateDbRow(MdbPath, existRow);
+            //DbMethods.UpdateDbTable(MdbPath, existTable, id);
+        }
+        //-------------------------------------------------------
+
         private List<string> GetDesignFiles()
         {
             if (!IsConnected)
@@ -585,6 +606,42 @@ namespace SharpPlant.SharpPlantReview
         public bool Connect()
         {
             DrApi = Activator.CreateInstance(SprImportedTypes.DrApi);
+
+            if (IsConnected)
+            {
+                // Set the startup fields
+                _version = GetVersion();
+                _mdbPath = GetMdbPath();
+                _mdbDatabase = GetMdbDatabase();
+                _sessionName = GetSessionName();
+                _nextTag = GetNextTag();
+                _nextAnnotation = GetNextAnnotation();
+                _processId = GetProcessId();
+                _designFiles = GetDesignFiles();
+
+                // Windows
+                Windows = new SprApplicationWindows(this);
+
+                // DbObjects
+                _annotations = new SprAnnotationCollection(this);
+                _tags = new SprTagCollection(this);
+
+                // Create the default snapshot format
+                DefaultSnapshot = new SprSnapShot
+                {
+                    AntiAlias = 3,
+                    OutputFormat = SprSnapshotFormat.Jpg,
+                    AspectOn = true,
+                    Scale = 1
+                };
+
+                // Set the default snapshot directories
+                SprSnapShot.TempDirectory = Environment.GetEnvironmentVariable("TEMP");
+                SprSnapShot.DefaultDirectory = Environment.SpecialFolder.MyPictures.ToString();
+
+                SprStatus = 0;
+            }
+            
             return IsConnected;
         }
 
@@ -1294,7 +1351,8 @@ namespace SharpPlant.SharpPlantReview
                 tblFilter[0][kvp.Key] = kvp.Value;
 
             // Return the result of the table update
-            return DbMethods.UpdateDbTable(MdbPath, rowFilter, annoTable);
+            //return DbMethods.UpdateDbTable(MdbPath, annoTable, rowFilter);
+            return false;
         }
 
         /// <summary>
@@ -1329,7 +1387,7 @@ namespace SharpPlant.SharpPlantReview
                 tblFilter[0][kvp.Key] = kvp.Value;
 
             // Push the the updated table
-            DbMethods.UpdateDbTable(MdbPath, rowFilter, annoTable);
+            //DbMethods.UpdateDbTable(MdbPath, annoTable, rowFilter);
         }
 
         #endregion
@@ -1364,6 +1422,8 @@ namespace SharpPlant.SharpPlantReview
 
             // (.BMP is forced before conversions)
             var imgPath = Path.Combine(outputDir, string.Format("{0}.bmp", imageName));
+            if (File.Exists(imgPath))
+                File.Delete(imgPath);
 
             // Take the snapshot
             SprStatus = DrApi.SnapShot(imgPath, snap.Flags, snap.DrSnapShot, 0);
@@ -1386,7 +1446,11 @@ namespace SharpPlant.SharpPlantReview
 
             // Format the snapshot if required
             if (snap.OutputFormat != SprSnapshotFormat.Bmp)
+            {
                 SprSnapShot.FormatSnapshot(imgPath, snap.OutputFormat);
+                imgPath = Path.ChangeExtension(imgPath, snap.OutputFormat.ToString());
+            }
+                
 
             return Image.FromFile(imgPath);
         }

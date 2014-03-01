@@ -169,7 +169,10 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     Determines if the tag has been placed in SmartPlant Review.
         /// </summary>
-        public bool IsPlaced { get; private set; }
+        public bool IsPlaced //{ get; private set; }
+        {
+            get { return (Convert.ToInt32(Row["tag_size"])) != 0; }
+        }
 
         /// <summary>
         ///     Determines if the tag has an image stored in the MDB.
@@ -229,30 +232,46 @@ namespace SharpPlant.SharpPlantReview
 
         #endregion
 
+        public SprTagCollection Collection
+        {
+            get { return _collection; }
+            private set { _collection = value; }
+        }
+        private SprTagCollection _collection;
+
         #region Constructors
 
         public SprTag()
         {
-            IsPlaced = false;
             DisplayLeader = true;
+            Collection = Application.Tags;
         }
         public SprTag(DataRow dataRow) : base(dataRow)
         {
-            IsPlaced = dataRow["date_placed"] != DBNull.Value;
             DisplayLeader = (Convert.ToDouble(Row["tag_point_x"]) != 0); // Or something
+            Collection = Application.Tags;
         }
 
         #endregion
 
         #region Methods
 
+        protected override DataRow GetDataRow()
+        {
+            if (Collection == null)
+                throw new SprException("This tag is not part of a collection");
+
+            var dataRow = Collection.Table.Rows.Find(Id);
+            return dataRow ?? (DefaultRow);
+        }
         protected override DataRow GetDefaultRow()
         {
-            var tagTable = SprApplication.ActiveApplication.MdbDatabase.Tables["tag_data"];
+            //var tagTable = Collection.Table;
             //var tagTable = SprApplication.ActiveApplication.Tags.Table;
+            var tagTable = Application.MdbDatabase.Tables[SprConstants.MdbTagTable];
             var tagRow = tagTable.NewRow();
             tagRow["tag_unique_id"] = 0;
-            tagRow["tag_size"] = 0;
+            tagRow["tag_size"] = 0; // Controls IsPlaced
             tagRow["linkage_id_0"] = 0;
             tagRow["linkage_id_1"] = 0;
             tagRow["linkage_id_2"] = 0;
@@ -297,6 +316,7 @@ namespace SharpPlant.SharpPlantReview
                 return null;
             if (objIds.Count > 1)
                 throw new SprException("Multiple objects found for linkage {0}", Linkage);
+
             return Application.GetObjectData(objIds[0]);
         }
         private SprPoint3D GetLeaderPoint()
@@ -361,6 +381,8 @@ namespace SharpPlant.SharpPlantReview
             Application.SprStatus = Application.DrApi.ViewUpdate(1);
             if (Application.SprStatus != 0)
                 throw Application.SprException;
+
+            Collection.Remove(this);
         }
 
         /// <summary>
@@ -510,10 +532,11 @@ namespace SharpPlant.SharpPlantReview
             if (Application.SprStatus != 0)
                 throw Application.SprException;
 
-            IsPlaced = true;
+            //IsPlaced = true;
             _leaderPoint = tagLeader;
             _originPoint = tagOrigin;
 
+            Application.Tags.Add(this);
             Refresh();
 
             // Clear the tag registry
@@ -555,16 +578,21 @@ namespace SharpPlant.SharpPlantReview
             if (zoomToTag)
                 Goto();
 
-            var snap = snapShot ?? Application.DefaultSnapshot;   
-            var image = Application.TakeSnapshot("dbImage_temp", SprSnapShot.TempDirectory, snap);
-            var ms = new MemoryStream();
-            image.Save(ms, image.RawFormat);
-
-            Row["tag_image"] = ms.ToArray();
-
-            Update();
-
+            var snap = snapShot ?? Application.DefaultSnapshot;
+            using (var image = Application.TakeSnapshot("dbImage_temp", SprSnapShot.TempDirectory, snap))
+            {
+                var ms = new MemoryStream();
+                image.Save(ms, image.RawFormat);
+                Row["tag_image"] = ms.ToArray();
+                Update();
+            }
+            
             File.Delete(Path.Combine(SprSnapShot.TempDirectory, "dbImage_temp"));
+        }
+
+        public void DeleteSnapshot()
+        {
+            Row["tag_image"] = DBNull.Value;
         }
 
         #endregion

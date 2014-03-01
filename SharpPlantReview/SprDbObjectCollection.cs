@@ -15,6 +15,8 @@ namespace SharpPlant.SharpPlantReview
     {
         #region Properties
 
+        // Holding these in a collection should be quicker over time
+        // versus de-serializing DataRows into tags on demand.
         internal List<TObject> InnerCollection;
 
         public SprApplication Application { get; private set; }
@@ -42,10 +44,20 @@ namespace SharpPlant.SharpPlantReview
         }
         private DataTable _table;
 
+        /// <summary>
+        ///     Gets or sets elements at the specified index.
+        /// </summary>
+        /// <param name="index">The index of the SprDbObject to get or set.</param>
         public TObject this[int index]
         {
             get { return InnerCollection[index]; }
-            set { InnerCollection[index] = value; }
+            set
+            {
+                if (value == null)
+                    throw new ArgumentNullException("value");
+
+                InnerCollection[index] = value;
+            }
         }
 
         /// <summary>
@@ -57,8 +69,11 @@ namespace SharpPlant.SharpPlantReview
             get { return InnerCollection.First(o => o.Id.ToString() == id); }
             set
             {
-                if (value == null) throw new ArgumentNullException("value");
-                this[id] = value;
+                if (value == null)
+                    throw new ArgumentNullException("value");
+
+                var obj = InnerCollection.First(o => o.Id.ToString() == id);
+                obj = value;
             }
         }
 
@@ -70,7 +85,6 @@ namespace SharpPlant.SharpPlantReview
         protected SprDbObjectCollection(SprApplication application)
         {
             Application = application;
-            InnerCollection = new List<TObject>();
             _isReadOnly = false;
             Refresh();
         }
@@ -79,66 +93,73 @@ namespace SharpPlant.SharpPlantReview
 
         #region Methods
 
-        protected abstract DataTable GetTable();
-
-        protected void Refresh()
+        // Now the type-specific table can be defined in the specific collection
+        //protected abstract DataTable GetTable();
+        protected abstract string TableName { get; }
+        private DataTable GetTable()
         {
-            Clear();
-            var updatedTable = DbMethods.GetDbTable(Application.MdbPath, Table.TableName);
+            var returnTable = Application.MdbDatabase.Tables[TableName];
+            if (returnTable == null)
+                returnTable = Application.RefreshTable(TableName);
 
-            if (updatedTable == null)
-                throw new SprException("Could not access MDB table {0}.", Table.TableName);
-
-            foreach (DataRow objRow in updatedTable.Rows)
-            {
-                var dbObj = new TObject();
-                dbObj.Row.ItemArray = objRow.ItemArray;
-                InnerCollection.Add(dbObj);
-            }
-        }
-        protected void Update()
-        {
-            if (!DbMethods.UpdateDbTable(Application.MdbPath, Table))
-                throw new SprException("Error updating Mdb table {0}", Table.TableName);
+            return returnTable;
         }
 
         /// <summary>
-        ///     Adds a SprDbObject as a new row in the Mdb table.
+        ///     Adds the specified SprDbObject to the collection.
         /// </summary>
         public virtual void Add(TObject item)
         {
-            if (!Contains(item.Id))
-            {
-                InnerCollection.Add(item);
-                var newRow = Table.NewRow();
-                newRow.ItemArray = item.Row.ItemArray;
+            Add(new[] { item });
+        }
 
-                Update();
+        /// <summary>
+        ///     Adds several specified SprDbObjects to the collection. 
+        /// </summary>
+        /// <param name="items"></param>
+        public virtual void Add(IEnumerable<TObject> items)
+        {
+            foreach(var item in items)
+            {
+                if (!Contains(item.Id))
+                {
+                    var newRow = Table.NewRow();
+                    newRow = item.Row;
+
+                    if (newRow.RowState == DataRowState.Detached)
+                        Table.Rows.Add(newRow);
+
+                    newRow.AcceptChanges();
+                    InnerCollection.Add(item);
+                }
+
+                else
+                    throw new SprException("A {0} with Id: {1} already exists in {2}",
+                                           item.GetType().ToString(), item.Id, Application.MdbPath);
             }
-            else
-                throw new SprException("A {0} with Id: {1} already exists in {2}",
-                                       item.GetType().ToString(), item.Id, Application.MdbPath);
+
+            Update();
         }
 
         /// <summary>
         ///     Creates a new data field in the Mdb table.
+        ///     Any pending changes to the collection will be lost.
         /// </summary>
         /// <param name="fieldName">The string name of the field to be added.  Spaces in the field name are replaced.</param>
-        /// <param name="typeName"></param>
+        /// <param name="typeName">The data type of the field to be added.  Default is TEXT(255).</param>
         public virtual void AddDataField(string fieldName, string typeName = "TEXT(255)")
         {
-            DbMethods.AddDbField(Application.MdbPath, Table.TableName, typeName, typeName);
+            if (Table.Columns.Contains(fieldName))
+                return;
+
+            DbMethods.AddDbField(Application.MdbPath, Table.TableName, fieldName, typeName);
 
             Application.MdbDatabase = null;
-            Table = null;
             Refresh();
-            
-            // Add the tag field to the MDB database
-            //return DbMethods.AddDbField(MdbPath, "tag_data", fieldName);
         }
 
         /// <summary>
-        ///     Clears all the SprDbObjects from the MDB table.
+        ///     Clears the SprDbObject collection.
         /// </summary>
         public virtual void Clear()
         {
@@ -153,7 +174,7 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="item">The SprDbObject to search for.</param>
         public virtual bool Contains(TObject item)
         {
-            return Enumerable.Contains(InnerCollection, item);
+            return Contains(item.Id);// We'll check more later
         }
 
         /// <summary>
@@ -162,7 +183,8 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="id">The Id of the SprDbObject to search for.</param>
         public virtual bool Contains(int id)
         {
-            return InnerCollection.Any(obj => obj.Id == id);
+            return Table.Rows.Contains(id);
+            //return InnerCollection.Any(obj => obj.Id == id);
         }
 
         /// <summary>
@@ -170,8 +192,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void CopyTo(TObject[] array, int arrayIndex = 0)
         {
-            for (var i = arrayIndex; i < InnerCollection.Count; i++)
-                array[i] = InnerCollection[i];
+            InnerCollection.CopyTo(array, arrayIndex);
         }
 
         /// <summary>
@@ -180,31 +201,52 @@ namespace SharpPlant.SharpPlantReview
         public IEnumerator<TObject> GetEnumerator()
         {
             return InnerCollection.GetEnumerator();
-            //using (var iter = innerCollection.GetEnumerator())
-            //{
-            //    while (iter.MoveNext())
-            //        yield return iter.Current;
-            //}
+        }
+
+        /// <summary>
+        ///     Resets the collection to the current MDB table values.
+        /// </summary>
+        public void Refresh()
+        {
+            Table = Application.RefreshTable(TableName);
+            InnerCollection = new List<TObject>();
+
+            foreach (DataRow row in Table.Rows)
+            {
+                var obj = new TObject();
+                obj.Row = row;
+                InnerCollection.Add(obj);
+                if (obj.Row.RowState == DataRowState.Detached)
+                    Table.Rows.Add(obj.Row);
+            }
+
+            Table.AcceptChanges();
         }
         
         /// <summary>
         ///     Removes a specific SprDbObject from the collection.
         /// </summary>
-        /// <param name="item">The SprDbObject to remove from the list.</param>
+        /// <param name="item">The SprDbObject to remove from the collection.</param>
         public virtual bool Remove(TObject item)
         {
-            for (var i = 0; i < InnerCollection.Count; i++)
-            {
-                var curObj = InnerCollection[i];
-                if (!item.Equals(curObj))
-                    continue;
+            return Remove(new[] { item });
+        }
 
-                InnerCollection.RemoveAt(i);
-                Table.Rows.Find(item.Id).Delete();
-                return true;
+        /// <summary>
+        ///     Removes several specified SprDbObjects from the collection.
+        /// </summary>
+        /// <param name="items">The items to remove from the collection.</param>
+        public virtual bool Remove(IEnumerable<TObject> items)
+        {
+            foreach (var item in items)
+            {
+                InnerCollection.Remove(item);
+                var curItem = Table.Rows.Find(item.Id);
+                curItem.Delete();
             }
 
-            return false;
+            Update();
+            return true;
         }
 
         /// <summary>
@@ -214,6 +256,19 @@ namespace SharpPlant.SharpPlantReview
         public bool RemoveId(int id)
         {
             return Remove(this[id.ToString()]);
+        }
+
+        /// <summary>
+        ///     Updates the Mdb table with the current collection items.
+        /// </summary>
+        public void Update()
+        {
+            Application.UpdateTable(TableName);
+        }
+
+        public DataTable ToTable()
+        {
+            return Table.Copy();
         }
 
         #endregion

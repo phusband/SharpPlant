@@ -120,8 +120,6 @@ namespace SharpPlant.SharpPlantReview
 
             string errorString;
             sprApp.DrApi.ErrorString(errorStatus, out errorString);
-            if (sprApp.SprStatus != 0)
-                throw sprApp.SprException;
 
             return new SprException(errorString);
         }

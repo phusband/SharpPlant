@@ -84,6 +84,25 @@ namespace SharpPlant
             }
         }
 
+        public static bool UpdateDbRow(string dbPath, DataRow row)
+        {
+            using (var connection = GetConnection(dbPath))
+            {
+                try
+                {
+                    CheckOpenConnection(connection);
+                    var command = GetUpdateCommand(row, connection);
+                    command.ExecuteNonQuery();
+
+                    return true;
+                }
+                catch (OleDbException ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                    throw;
+                }
+            }
+        }
         public static bool UpdateDbTable(string dbPath, DataTable inputTable)
         {
             using (var connection = GetConnection(dbPath))
@@ -114,37 +133,7 @@ namespace SharpPlant
                 }
             }
         }
-        public static bool UpdateDbTable(string dbPath, string rowFilter, DataTable inputTable)
-        {
-            using (var connection = GetConnection(dbPath))
-            {
-                try
-                {
-                    CheckOpenConnection(connection);
 
-                    var updateCommand = GetUpdateCommand(inputTable, rowFilter, connection);
-                    var adapter = new OleDbDataAdapter { UpdateCommand = updateCommand };
-
-                    adapter.Update(inputTable);
-
-                    inputTable.AcceptChanges();
-
-                }
-                catch (OleDbException ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                    throw;
-                }
-            }
-
-            // Return true on success
-            return true;
-        }
-
-        public static bool AddDbField(string dbPath, string tableName, string fieldName)
-        {
-            return AddDbField(dbPath, tableName, fieldName, "TEXT(255)");
-        }
         public static bool AddDbField(string dbPath, string tableName, string fieldName, string fieldType)
         {
             using (var connection = GetConnection(dbPath))
@@ -224,7 +213,36 @@ namespace SharpPlant
             return retCommand;
         }
 
-        private static OleDbCommand GetUpdateCommand(DataTable inputTable, string rowFilter, OleDbConnection connection)
+        private static OleDbCommand GetUpdateCommand(DataRow row, OleDbConnection connection)
+        {
+            var retCommand = connection.CreateCommand();
+            var sb = new StringBuilder(string.Format("UPDATE {0} SET ", row.Table.TableName));
+            var pk = row.Table.PrimaryKey[0];
+            var pkValue = row[pk];
+
+            foreach (DataColumn col in row.Table.Columns)
+            {
+                if (col == pk) continue;
+                sb.AppendFormat("{0} = ?, ", col.ColumnName);
+                var par = new OleDbParameter
+                {
+                    ParameterName = "@" + col.ColumnName,
+                    OleDbType = GetOleDbType(col.DataType),
+                    Size = col.MaxLength,
+                    SourceColumn = col.ColumnName,
+                    Value = row[col] ?? DBNull.Value
+                };
+
+                retCommand.Parameters.Add(par);
+            }
+
+            sb.Remove(sb.ToString().LastIndexOf(','), 1);
+            sb.AppendFormat("WHERE {0} = {1}", pk, pkValue);
+
+            retCommand.CommandText = sb.ToString();
+            return retCommand;
+        }
+        private static OleDbCommand GetUpdateCommand(DataTable inputTable, object rowFilter, OleDbConnection connection)
         {
             var retCommand = connection.CreateCommand();
             var sb = new StringBuilder(string.Format("UPDATE {0} SET ", inputTable.TableName));
@@ -246,41 +264,8 @@ namespace SharpPlant
             sb.Remove(sb.ToString().LastIndexOf(','), 1);
 
             // Add a where clause if a rowfilter was provided
-            if (rowFilter != string.Empty)
+            if (rowFilter.ToString() != string.Empty)
                 sb.AppendFormat("WHERE {0}", rowFilter);
-
-            retCommand.CommandText = sb.ToString();
-            return retCommand;
-        }
-        private static OleDbCommand GetUpdateCommand(DataRow row, OleDbConnection connection)
-        {
-            var retCommand = connection.CreateCommand();
-            var parentTable = row.Table;
-            var pKey = parentTable.PrimaryKey[0];
-
-            var sb = new StringBuilder(string.Format("UPDATE {0} SET ", parentTable.TableName));
-
-            foreach (var col in parentTable.Columns
-                    .Cast<DataColumn>()
-                    .Where(col => !col.Unique))
-            {
-                sb.AppendFormat("{0} = ?, ", col.ColumnName);
-
-                var par = new OleDbParameter
-                {
-                    ParameterName = col.ColumnName,
-                    OleDbType = GetOleDbType(col.DataType),
-                    Size = col.MaxLength,
-                    SourceColumn = col.ColumnName,
-                };
-
-                retCommand.Parameters.Add(par);
-            }
-
-            sb.Remove(sb.ToString().LastIndexOf(','), 1);
-
-            // Add a where clause to the primary key
-            sb.AppendFormat("WHERE {0} = {1}", pKey.ColumnName, row[pKey.ColumnName]);
 
             retCommand.CommandText = sb.ToString();
             return retCommand;

@@ -18,6 +18,7 @@ namespace SharpPlant.SharpPlantReview
         internal DataRow Row
         {
             get { return _row ?? (_row = GetDataRow()); }
+            set { _row = value; }
         }
         private DataRow _row;
 
@@ -66,26 +67,22 @@ namespace SharpPlant.SharpPlantReview
         #region Constructors
 
         protected SprDbObject()
-        {   
-            _row = DefaultRow;
+        {
             Application = SprApplication.ActiveApplication;
+            _row = DefaultRow;
+            
         }
         protected SprDbObject(DataRow datarow)
         {
-            _row = datarow;
             Application = SprApplication.ActiveApplication;
+            _row = datarow;
         }
 
         #endregion
 
         #region Methods
 
-        // Getters
-        private DataRow GetDataRow()
-        {
-            var dataRow = Application.MdbDatabase.Tables[TableName].Rows.Find(Id);
-            return dataRow ?? (DefaultRow);
-        }
+        protected abstract DataRow GetDataRow();
         protected abstract DataRow GetDefaultRow();
 
         /// <summary>
@@ -93,15 +90,12 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void Refresh()
         {
-            var updatedTable = DbMethods.GetDbTable(Application.MdbPath, TableName);
-            var updatedRow = updatedTable.Rows.Find(Id);
+            Row = Application.RefreshRow(TableName, Id);
 
-            _row = updatedRow;
+            if (Row.RowState == DataRowState.Detached)
+                Row.Table.Rows.Add(Row);
 
-            if (_row.RowState == DataRowState.Detached)
-                _row.Table.Rows.Add(_row);
-
-            _row.AcceptChanges();
+            Row.AcceptChanges();
         }
 
         /// <summary>
@@ -109,8 +103,7 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void Update()
         {
-            var filter = string.Format("{0} = {1}", IdKey, Id);
-            DbMethods.UpdateDbTable(Application.MdbPath, filter, Row.Table);
+            Application.UpdateRow(TableName, Id);
         }
 
         #endregion

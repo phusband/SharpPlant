@@ -37,12 +37,6 @@ namespace SharpPlant.SharpPlantReview
 
         #region Methods
 
-        protected override DataTable GetTable()
-        {
-            return Application.MdbDatabase.Tables["tag_data"];
-            //return Application.Tags.Table;
-        }
-
         /// <summary>
         ///     Sets the application tag visibility state.
         /// </summary>
@@ -63,5 +57,10 @@ namespace SharpPlant.SharpPlantReview
         }
 
         #endregion
+
+        protected override string TableName
+        {
+            get { return SprConstants.MdbTagTable; }
+        }
     }
 }
