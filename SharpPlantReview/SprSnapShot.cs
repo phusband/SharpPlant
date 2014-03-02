@@ -227,7 +227,7 @@ namespace SharpPlant.SharpPlantReview
         internal static void FormatSnapshot(string imagePath, SprSnapshotFormat format)
         {
             // Get the saved image
-            string finalPath = imagePath;
+            string finalPath;
             var curImage = Image.FromFile(imagePath);
             var result = new Bitmap(curImage.Width, curImage.Height);
 

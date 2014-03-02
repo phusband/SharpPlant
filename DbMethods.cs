@@ -4,6 +4,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
 using System.Diagnostics;
@@ -34,6 +35,25 @@ namespace SharpPlant
                 adapter.Fill(returnTable);
 
                 return returnTable;
+            }
+        }
+
+        public static DataSet GetDbDataSet(string dbPath, IEnumerable<string> tables)
+        {
+            using (var connection = GetConnection(dbPath, ConnectionType.Ace))
+            {
+                CheckOpenConnection(connection);
+
+                var returnSet = new DataSet();
+                var selectCommand = GetSelectCommand(tables.ToArray(), connection);
+
+                selectCommand.CommandType = CommandType.Text;
+
+                var adapter = new OleDbDataAdapter(selectCommand);
+                adapter.FillSchema(returnSet, SchemaType.Mapped);
+                adapter.Fill(returnSet);
+
+                return returnSet;
             }
         }
 
@@ -210,6 +230,18 @@ namespace SharpPlant
             var retCommand = connection.CreateCommand();
             retCommand.CommandText = string.Format("SELECT * FROM {0}", tableName);
 
+            return retCommand;
+        }
+
+        private static OleDbCommand GetSelectCommand(string[] tables, OleDbConnection connection)
+        {
+            var retCommand = connection.CreateCommand();
+            var sb = new StringBuilder("SELECT ");
+
+            foreach (var table in tables)
+                sb.AppendFormat("SELECT * FROM {0} ", table);
+
+            retCommand.CommandText = sb.ToString();
             return retCommand;
         }
 

@@ -62,12 +62,12 @@ namespace SharpPlant.SharpPlantReview
         }
         public SprPoint3D()
         {
-            DrPointDbl = System.Activator.CreateInstance(SprImportedTypes.DrPointDbl);
+            DrPointDbl = Activator.CreateInstance(SprImportedTypes.DrPointDbl);
             if (DrPointDbl == null) throw SprExceptions.SprObjectCreateFail;
         }
         public SprPoint3D(double east, double north, double elevation)
         {
-            DrPointDbl = System.Activator.CreateInstance(SprImportedTypes.DrPointDbl);
+            DrPointDbl = Activator.CreateInstance(SprImportedTypes.DrPointDbl);
             if (DrPointDbl == null) throw SprExceptions.SprObjectCreateFail;
 
             East = east;
@@ -76,6 +76,8 @@ namespace SharpPlant.SharpPlantReview
         }
 
         #endregion
+
+        #region IEquatable
 
         public bool Equals(SprPoint3D other)
         {
@@ -113,5 +115,7 @@ namespace SharpPlant.SharpPlantReview
         {
             return !(left == right);
         }
+
+        #endregion
     }
 }

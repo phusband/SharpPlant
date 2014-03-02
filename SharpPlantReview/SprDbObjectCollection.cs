@@ -72,8 +72,8 @@ namespace SharpPlant.SharpPlantReview
                 if (value == null)
                     throw new ArgumentNullException("value");
 
-                var obj = InnerCollection.First(o => o.Id.ToString() == id);
-                obj = value;
+                this[id] = value;
+                //obj = value;
             }
         }
 
@@ -98,9 +98,8 @@ namespace SharpPlant.SharpPlantReview
         protected abstract string TableName { get; }
         private DataTable GetTable()
         {
-            var returnTable = Application.MdbDatabase.Tables[TableName];
-            if (returnTable == null)
-                returnTable = Application.RefreshTable(TableName);
+            var returnTable = Application.MdbDatabase.Tables[TableName]
+                ?? Application.RefreshTable(TableName);
 
             return returnTable;
         }
@@ -213,8 +212,7 @@ namespace SharpPlant.SharpPlantReview
 
             foreach (DataRow row in Table.Rows)
             {
-                var obj = new TObject();
-                obj.Row = row;
+                var obj = new TObject {Row = row};
                 InnerCollection.Add(obj);
                 if (obj.Row.RowState == DataRowState.Detached)
                     Table.Rows.Add(obj.Row);

@@ -447,6 +447,9 @@ namespace SharpPlant.SharpPlantReview
 
             // TODO:  Add a DbMethod for returning a set of tables so that a single Db connection can be used 
             var tables = new[] { SprConstants.MdbTagTable, SprConstants.MdbSiteTable, SprConstants.MdbAnnotationTable, "text_annotation_types" };
+
+            var testSet = DbMethods.GetDbDataSet(MdbPath, tables);
+
             foreach (var t in tables)
                 returnSet.Tables.Add(DbMethods.GetDbTable(MdbPath, t));
 
