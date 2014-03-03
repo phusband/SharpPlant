@@ -205,7 +205,7 @@ namespace SharpPlant.SharpPlantReview
         /// <summary>
         ///     Resets the collection to the current MDB table values.
         /// </summary>
-        public void Refresh()
+        public virtual void Refresh()
         {
             Table = Application.RefreshTable(TableName);
             InnerCollection = new List<TObject>();

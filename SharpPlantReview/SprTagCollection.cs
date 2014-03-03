@@ -4,6 +4,8 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Windows.Forms;
 
 namespace SharpPlant.SharpPlantReview
@@ -36,6 +38,39 @@ namespace SharpPlant.SharpPlantReview
 
         #region Methods
 
+        protected override string TableName
+        {
+            get { return SprConstants.MdbTagTable; }
+        }
+
+        public override void Refresh()
+        {
+            Table = Application.RefreshTable(TableName);
+            InnerCollection = new List<SprTag>();
+
+            foreach (DataRow row in Table.Rows)
+            {
+                var tag = new SprTag { Row = row };
+                InnerCollection.Add(tag);
+                tag.Collection = this;
+
+                if (tag.Row.RowState == DataRowState.Detached)
+                    Table.Rows.Add(tag.Row);
+            }
+
+            Table.AcceptChanges();
+        }
+
+        public override bool Remove(SprTag item)
+        {
+            InnerCollection.Remove(item);
+            var curItem = Table.Rows.Find(item.Id);
+            Table.Rows.Remove(curItem);
+
+            Update();
+            return true;
+        }
+
         /// <summary>
         ///     Sets the application tag visibility state.
         /// </summary>
@@ -56,10 +91,5 @@ namespace SharpPlant.SharpPlantReview
         }
 
         #endregion
-
-        protected override string TableName
-        {
-            get { return SprConstants.MdbTagTable; }
-        }
     }
 }

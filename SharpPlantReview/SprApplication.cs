@@ -169,6 +169,8 @@ namespace SharpPlant.SharpPlantReview
         }
         private ICollection<string> _designFiles;
 
+        public List<int> HighlightedObjects { get; private set; }
+
         /// <summary>
         ///     Determines if the SmartPlant Review application is busy.
         /// </summary>
@@ -443,15 +445,9 @@ namespace SharpPlant.SharpPlantReview
             if (!IsConnected)
                 return null;
 
-            var returnSet = new DataSet("MDB Database");
-
-            // TODO:  Add a DbMethod for returning a set of tables so that a single Db connection can be used 
             var tables = new[] { SprConstants.MdbTagTable, SprConstants.MdbSiteTable, SprConstants.MdbAnnotationTable, "text_annotation_types" };
-
-            var testSet = DbMethods.GetDbDataSet(MdbPath, tables);
-
-            foreach (var t in tables)
-                returnSet.Tables.Add(DbMethods.GetDbTable(MdbPath, t));
+            var returnSet = DbMethods.GetDbDataSet(MdbPath, tables);
+            returnSet.DataSetName = "MDB Database";
 
             return returnSet;
         }
@@ -784,10 +780,50 @@ namespace SharpPlant.SharpPlantReview
         /// <param name="objectId">Object Id of the of the entity to be highlighted.</param>
         public void HighlightObject(int objectId)
         {
+            if (HighlightedObjects == null)
+                HighlightedObjects = new List<int>();
+
             // Highlight the object in SPR
             SprStatus = DrApi.HighlightObject(objectId, 1, 0);
             if (SprStatus != 0)
                 throw SprException;
+
+            HighlightedObjects.Add(objectId);
+        }
+
+        public void HighlightObject(int objectId, Color color, int width = 2)
+        {
+            // Object Highlight Version 9+
+            var vers = int.Parse(Version.Substring(0, 2));
+            if (vers >= 9)
+            {
+                if (HighlightedObjects == null)
+                    HighlightedObjects = new List<int>();
+
+                SprStatus = DrApi.NameValueSet("Highlight-Glow-Option", 1);
+                if (SprStatus != 0)
+                    throw SprException;
+
+                SprStatus = DrApi.NameValueSet("Highlight-Wireframe-Color", SprUtilities.Get0Bgr(color));
+                if (SprStatus != 0)
+                    throw SprException;
+
+                SprStatus = DrApi.NameValueSet("Highlight-Wireframe-Width", width);
+                if (SprStatus != 0)
+                    throw SprException;
+
+                SprStatus = DrApi.NameValueSet("Highlight-Objects", objectId.ToString());
+                if (SprStatus != 0)
+                    throw SprException;
+
+                HighlightedObjects.Add(objectId);
+
+                SprStatus = DrApi.ViewUpdate(1);
+                if (SprStatus != 0)
+                    throw SprException;
+            }
+            else
+                HighlightObject(objectId);
         }
 
         /// <summary>
@@ -795,15 +831,34 @@ namespace SharpPlant.SharpPlantReview
         /// </summary>
         public void HighlightClear()
         {
-            // Clear the highlighting in SPR 
-            SprStatus = DrApi.HighlightExit(1);
-            if (SprStatus != 0)
-                throw SprException;
+            if (HighlightedObjects == null || HighlightedObjects.Count == 0)
+                return;
+
+            // Object Highlight Version 9+
+            var vers = int.Parse(Version.Substring(0, 2));
+            if (vers >= 9)
+            {
+                var tabbedIds = string.Empty;
+                foreach (var obj in HighlightedObjects)
+                    tabbedIds += obj.ToString() + "\t";
+
+                SprStatus = DrApi.NameValueSet("Highlight-Objects-Remove", tabbedIds);
+                if (SprStatus != 0)
+                    throw SprException;
+            }
+            else
+            {
+                SprStatus = DrApi.HighlightExit(1);
+                if (SprStatus != 0)
+                    throw SprException;
+            }
 
             // Refresh the main window
             SprStatus = DrApi.ViewUpdate(1);
             if (SprStatus != 0)
                 throw SprException;
+
+            HighlightedObjects.Clear();
         }
 
         #endregion
@@ -1411,7 +1466,16 @@ namespace SharpPlant.SharpPlantReview
                 throw SprExceptions.SprNotConnected;
 
             // Get the default snapshot if none was supplied
-            var snap = snapShot ?? DefaultSnapshot;           
+            var snap = snapShot ?? DefaultSnapshot;
+    
+            // Turn off Fly-To behaviors (if supported)
+            var vers = int.Parse(Version.Substring(0, 2));
+            if (vers >= 9)
+            {
+                SprStatus = DrApi.NameValueSet("Motion-Fly-To", false);
+                if (SprStatus != 0)
+                    throw SprException;
+            }
 
             // Get the current backface/endcap settings
             var orgBackfaces = GlobalOptionsGet(SprConstants.SprGlobalBackfacesDisplay);

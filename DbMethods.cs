@@ -45,13 +45,14 @@ namespace SharpPlant
                 CheckOpenConnection(connection);
 
                 var returnSet = new DataSet();
-                var selectCommand = GetSelectCommand(tables.ToArray(), connection);
+                foreach(var table in tables)
+                {
+                    var selectCommand = GetSelectCommand(table, connection);
+                    selectCommand.CommandType = CommandType.Text;
 
-                selectCommand.CommandType = CommandType.Text;
-
-                var adapter = new OleDbDataAdapter(selectCommand);
-                adapter.FillSchema(returnSet, SchemaType.Mapped);
-                adapter.Fill(returnSet);
+                    var adapter = new OleDbDataAdapter(selectCommand);
+                    adapter.Fill(returnSet, table);
+                }
 
                 return returnSet;
             }
@@ -230,18 +231,6 @@ namespace SharpPlant
             var retCommand = connection.CreateCommand();
             retCommand.CommandText = string.Format("SELECT * FROM {0}", tableName);
 
-            return retCommand;
-        }
-
-        private static OleDbCommand GetSelectCommand(string[] tables, OleDbConnection connection)
-        {
-            var retCommand = connection.CreateCommand();
-            var sb = new StringBuilder("SELECT ");
-
-            foreach (var table in tables)
-                sb.AppendFormat("SELECT * FROM {0} ", table);
-
-            retCommand.CommandText = sb.ToString();
             return retCommand;
         }
 

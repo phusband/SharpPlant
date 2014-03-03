@@ -235,7 +235,7 @@ namespace SharpPlant.SharpPlantReview
         public SprTagCollection Collection
         {
             get { return _collection; }
-            private set { _collection = value; }
+            internal set { _collection = value; }
         }
         private SprTagCollection _collection;
 
@@ -244,12 +244,10 @@ namespace SharpPlant.SharpPlantReview
         public SprTag()
         {
             DisplayLeader = true;
-            Collection = Application.Tags;
         }
         public SprTag(DataRow dataRow) : base(dataRow)
         {
             DisplayLeader = (Convert.ToDouble(Row["tag_point_x"]) != 0); // Or something
-            Collection = Application.Tags;
         }
 
         #endregion
@@ -400,6 +398,7 @@ namespace SharpPlant.SharpPlantReview
             var tagOrigin = new SprPoint3D();
 
             // Get an object on screen and set the origin point to its location
+            Application.HighlightClear();
             var objId = Application.GetObjectId("SELECT NEW TAG START POINT", ref tagOrigin);
             if (objId == 0)
             {
@@ -407,15 +406,19 @@ namespace SharpPlant.SharpPlantReview
                 return;
             }
 
+            // Highlight the selected object
+            Application.HighlightObject(objId, Color.Fuchsia);
+
             // Get the tag leader point on screen
             var tagLeader = Application.GetPoint("SELECT NEW LEADER LOCATION", tagOrigin);
             if (tagLeader == null)
             {
+                Application.HighlightClear();
                 Application.Windows.TextWindow.Text = "Tag placement canceled.";
                 return;
             }
 
-            var curObject = Application.GetObjectData(objId);
+            _linkedObject = Application.GetObjectData(objId);
 
             DisplayLeader = true;
             Flags |= SprConstants.SprTagLabel;
@@ -423,7 +426,7 @@ namespace SharpPlant.SharpPlantReview
 
             // Update the tag with the new leader points
             Application.SprStatus = Application.DrApi.TagSetDbl(Id, 0, Flags, tagLeader.DrPointDbl,
-                                                tagOrigin.DrPointDbl, curObject.Linkage.DrKey, Text);
+                                                tagOrigin.DrPointDbl, LinkedObject.Linkage.DrKey, Text);
             if (Application.SprStatus != 0)
                 throw Application.SprException;
 
@@ -437,6 +440,7 @@ namespace SharpPlant.SharpPlantReview
             Update();
 
             SendToTextWindow();
+            Application.HighlightClear();
             Application.SprStatus = Application.DrApi.ViewUpdate(1);
             if (Application.SprStatus != 0)
                 throw Application.SprException;
@@ -503,6 +507,7 @@ namespace SharpPlant.SharpPlantReview
             var tagOrigin = new SprPoint3D();
 
             // Get an object on screen and set the origin point to its location
+            Application.HighlightClear();
             var objId = Application.GetObjectId("SELECT TAG START POINT", ref tagOrigin);
             if (objId == 0)
             {
@@ -510,10 +515,14 @@ namespace SharpPlant.SharpPlantReview
                 return;
             }
 
+            // Highlight the selected object
+            Application.HighlightObject(objId, Color.Fuchsia);
+
             // Get the tag leader point using the origin for depth
             var tagLeader = Application.GetPoint("SELECT TAG LEADER LOCATION", tagOrigin);
             if (tagLeader == null)
             {
+                Application.HighlightClear();
                 Application.Windows.TextWindow.Text = "Tag placement canceled.";
                 return;
             }
@@ -543,6 +552,8 @@ namespace SharpPlant.SharpPlantReview
             SprUtilities.ClearTagRegistry();
 
             SendToTextWindow();
+
+            Application.HighlightClear();
             Application.SprStatus = Application.DrApi.ViewUpdate(1);
             if (Application.SprStatus != 0)
                 throw Application.SprException;
