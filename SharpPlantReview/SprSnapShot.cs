@@ -204,8 +204,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Get a new DrSnapShot object
             DrSnapShot = Activator.CreateInstance(SprImportedTypes.DrSnapShot);
-			
-			// Set the default snapshot values
+
+            // Set the default snapshot values
             if (Application.DefaultSnapshot != null)
             {
                 Flags = Application.DefaultSnapshot.Flags;
@@ -217,86 +217,50 @@ namespace SharpPlant.SharpPlantReview
                 // Set the default size based on the main window 
                 Height = Application.Windows.MainWindow.Height;
                 Width = Application.Windows.MainWindow.Width;
-            }            
+            }
         }
 
         #endregion
 
         #region Methods
 
-        internal static void FormatSnapshot(string imagePath, SprSnapshotFormat format)
+        internal static Image FormatSnapshot(string imagePath, SprSnapshotFormat format)
         {
-            // Get the saved image
-            string finalPath;
-            var curImage = Image.FromFile(imagePath);
-            var result = new Bitmap(curImage.Width, curImage.Height);
-
-            // Correct the resolution
-            result.SetResolution(curImage.HorizontalResolution, curImage.VerticalResolution);
-
-            // Draw the image from the bitmap
-            using (var g = Graphics.FromImage(result))
+            var imgFile = new Bitmap(imagePath);
+            using (var g = Graphics.FromImage(imgFile))
             {
                 g.CompositingQuality = CompositingQuality.HighQuality;
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 g.SmoothingMode = SmoothingMode.HighQuality;
-
-                // Draw the image
-                g.DrawImage(curImage, 0, 0, result.Width, result.Height);
+                g.DrawImage(imgFile, 0, 0, imgFile.Width, imgFile.Height);
             }
 
-            switch (format)
+
+            var savePath = imagePath;
+            var imgStream = new MemoryStream(); // Must stay open!
+            if (format == SprSnapshotFormat.Png)
             {
-                // Save as PNG
-                case SprSnapshotFormat.Png:
-                    finalPath = Path.ChangeExtension(imagePath, "png");
-                    if (File.Exists(finalPath))
-                        File.Delete(finalPath);
-                    result.Save(finalPath, ImageFormat.Png);
-                    break;
-
-                // Save as JPG
-                case SprSnapshotFormat.Jpg:
-                    {
-                        // Create a custom JPG encoder
-                        var jpgEncoder = ImageCodecInfo.GetImageDecoders().FirstOrDefault
-                            (
-                                // Get the matching codec
-                                codec => codec.FormatID == ImageFormat.Jpeg.Guid
-                            );
-
-                        if (jpgEncoder != null)
-                        {
-                            // Set the image quality
-                            var encodeQuality = Encoder.Quality;
-                            var encodeParams = new EncoderParameters(1);
-                            var qualityParam = new EncoderParameter(encodeQuality, 95L);
-                            encodeParams.Param[0] = qualityParam;
-
-                            // Save to JPG using the custom encoder
-                            finalPath = Path.ChangeExtension(imagePath, "jpg");
-                            if (File.Exists(finalPath))
-                                File.Delete(finalPath);
-                            result.Save(finalPath, jpgEncoder, encodeParams);
-                        }
-                    }
-                    break;
+                savePath = Path.ChangeExtension(imagePath, "png");
+                imgFile.Save(imgStream, ImageFormat.Png);
             }
-
-            // Delete the original image
-            while (File.Exists(imagePath))
+            else if(format == SprSnapshotFormat.Jpg)
             {
-                try
+                var jpgEncoder = ImageCodecInfo.GetImageDecoders().First(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
+                if (jpgEncoder != null)
                 {
-                    curImage.Dispose();
-                    result.Dispose();
-                    File.Delete(imagePath);
-                }
-                catch (IOException)
-                {
-                    Thread.Sleep(100);
+                    // Set the image quality
+                    var encodeQuality = Encoder.Quality;
+                    var encodeParams = new EncoderParameters(1);
+                    var qualityParam = new EncoderParameter(encodeQuality, 95L);
+                    encodeParams.Param[0] = qualityParam;
+
+                    savePath = Path.ChangeExtension(imagePath, "jpg");
+                    imgFile.Save(imgStream, jpgEncoder, encodeParams);
                 }
             }
+
+            imgFile.Dispose();
+            return Image.FromStream(imgStream);
         }
 
         #endregion

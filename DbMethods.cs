@@ -98,11 +98,9 @@ namespace SharpPlant
             else
                 throw new Exception("Unable to determine header size for the OLE Object");
 
-            using (var imgStream = new MemoryStream())
-            {
-                imgStream.Write(buffer, iPos, buffer.Length - iPos);
-                return Image.FromStream(imgStream);
-            }
+            var imgStream = new MemoryStream(); // Must stay open!
+            imgStream.Write(buffer, iPos, buffer.Length - iPos);
+            return Image.FromStream(imgStream);
         }
 
         public static bool UpdateDbRow(string dbPath, DataRow row)
@@ -114,7 +112,7 @@ namespace SharpPlant
                     CheckOpenConnection(connection);
                     var command = GetUpdateCommand(row, connection);
                     command.ExecuteNonQuery();
-
+                    row.AcceptChanges();
                     return true;
                 }
                 catch (OleDbException ex)
@@ -134,7 +132,6 @@ namespace SharpPlant
 
                     var commandString = string.Format("SELECT * FROM {0}", inputTable.TableName);
                     var dataAdapter = new OleDbDataAdapter(commandString, connection);
-
                     foreach (var row in from DataRow row in inputTable.Rows
                                         where row.RowState != DataRowState.Unchanged
                                         let command = new OleDbCommandBuilder(dataAdapter).GetUpdateCommand(true)
@@ -338,4 +335,4 @@ namespace SharpPlant
             Jet = 2
         }
     }
-}//
+}

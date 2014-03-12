@@ -14,7 +14,7 @@ namespace SharpPlant.SharpPlantReview
     /// <summary>
     ///     Provides the properties for creating a tag in SmartPlant Review.
     /// </summary>
-    public class SprTag : SprDbObject
+    public class SprTag : SprDbObject, IDisposable
     {
         #region Properties
 
@@ -252,6 +252,24 @@ namespace SharpPlant.SharpPlantReview
 
         #endregion
 
+        #region IDisposable
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    if (HasImage)
+                        Image.Dispose();
+                }
+
+                base.Dispose(disposing);
+            }
+        }
+
+        #endregion
+
         #region Methods
 
         protected override DataRow GetDataRow()
@@ -285,11 +303,11 @@ namespace SharpPlant.SharpPlantReview
 
             return tagRow;
         }
+
         private Image GetImage()
         {
             return !HasImage ? null : DbMethods.GetDbImage(Row["tag_image"]);
         }
-
         private SprObject GetLinkedObject()
         {
             if (!IsDataLinked)
@@ -441,6 +459,7 @@ namespace SharpPlant.SharpPlantReview
 
             SendToTextWindow();
             Application.HighlightClear();
+
             Application.SprStatus = Application.DrApi.ViewUpdate(1);
             if (Application.SprStatus != 0)
                 throw Application.SprException;
@@ -584,26 +603,40 @@ namespace SharpPlant.SharpPlantReview
         public void TakeSnapshot(bool zoomToTag, SprSnapShot snapShot = null)
         {
             if (!Row.Table.Columns.Contains("tag_image"))
+            {
                 Application.Tags.AddDataField("tag_image", "OLEOBJECT");
+                var oldVals = Row.ItemArray;
+                Refresh();
+                Row.ItemArray = oldVals;
+            }
 
             if (zoomToTag)
                 Goto();
 
             var snap = snapShot ?? Application.DefaultSnapshot;
-            using (var image = Application.TakeSnapshot("dbImage_temp", SprSnapShot.TempDirectory, snap))
-            {
-                var ms = new MemoryStream();
-                image.Save(ms, image.RawFormat);
-                Row["tag_image"] = ms.ToArray();
-                Update();
-            }
-            
-            File.Delete(Path.Combine(SprSnapShot.TempDirectory, "dbImage_temp"));
+            var tempName = string.Format("dbImage_tag_{0}", Id);
+
+            var ms = new MemoryStream();
+            _image = Application.TakeSnapshot(tempName, SprSnapShot.TempDirectory, snap);
+            _image.Save(ms, _image.RawFormat);
+
+            Row["tag_image"] = ms.ToArray();
+            ms.Dispose();
+
+            Update();
         }
 
+        /// <summary>
+        ///     Deletes the snapshot owned by the current <see cref="SprTag"/>.
+        /// </summary>
         public void DeleteSnapshot()
         {
+            if (Image != null)
+                Image.Dispose();
+
             Row["tag_image"] = DBNull.Value;
+
+            Update();
         }
 
         #endregion

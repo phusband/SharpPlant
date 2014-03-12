@@ -8,9 +8,11 @@ using System.Data;
 
 namespace SharpPlant.SharpPlantReview
 {
-    public abstract class SprDbObject : IEquatable<SprDbObject>
+    public abstract class SprDbObject : IEquatable<SprDbObject>, IComparable<SprDbObject>, IDisposable
     {
         #region Properties
+
+        protected bool _disposed;
 
         /// <summary>
         ///     The backing DataRow that contains the SprDbObject values.
@@ -77,6 +79,10 @@ namespace SharpPlant.SharpPlantReview
             Application = SprApplication.ActiveApplication;
             _row = datarow;
         }
+        ~SprDbObject()
+        {
+            Dispose(false);
+        }
 
         #endregion
 
@@ -132,6 +138,35 @@ namespace SharpPlant.SharpPlantReview
             return Equals(null)
                 ? 0
                 : new {Id, TableName}.GetHashCode();
+        }
+
+        #endregion
+
+        #region IComparable
+
+        public int CompareTo(SprDbObject other)
+        {
+            return this.Id.CompareTo(other.Id);
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                    Row = null;
+
+                _disposed = true;
+            }
         }
 
         #endregion

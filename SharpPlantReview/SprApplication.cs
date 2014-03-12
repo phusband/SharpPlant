@@ -187,6 +187,7 @@ namespace SharpPlant.SharpPlantReview
             // Check if the DrApi is set
             get { return DrApi != null; }
         }
+        //private bool _isConnected;
 
         /// <summary>
         ///     The last error returned from the most recent DrApi function call.
@@ -210,12 +211,13 @@ namespace SharpPlant.SharpPlantReview
             get
             {
                 if (_nextAnnotation == 0)
-                    _nextTag = GetNextAnnotation();
+                    _nextAnnotation = GetNextAnnotation();
                 return _nextAnnotation;
             }
             set 
             {
-                SetNextAnnotation(value);
+                if (_nextAnnotation != 0)
+                    SetNextAnnotation(value);
                 _nextAnnotation = value;
             }
         }
@@ -228,17 +230,14 @@ namespace SharpPlant.SharpPlantReview
         {
             get
             {
-                if (_nextTag == 0)
-                    _nextTag = GetNextTag();
-                return _nextTag;
+                return GetNextTag();
             }
             set
             {
-                SetNextTag(value);
-                _nextTag = value;
+                if (value != 0)
+                    SetNextTag(value);
             }
         }
-        private int _nextTag;
 
         /// <summary>
         ///     Gets the process ID of the SmartPlant Review application.
@@ -605,15 +604,17 @@ namespace SharpPlant.SharpPlantReview
         public bool Connect()
         {
             DrApi = Activator.CreateInstance(SprImportedTypes.DrApi);
+            if (DrApi == null)
+                return false;
 
-            if (IsConnected)
+            try
             {
                 // Set the startup fields
                 _version = GetVersion();
                 _mdbPath = GetMdbPath();
                 _mdbDatabase = GetMdbDatabase();
                 _sessionName = GetSessionName();
-                _nextTag = GetNextTag();
+                //_nextTag = GetNextTag();
                 _nextAnnotation = GetNextAnnotation();
                 _processId = GetProcessId();
                 _designFiles = GetDesignFiles();
@@ -639,6 +640,10 @@ namespace SharpPlant.SharpPlantReview
                 SprSnapShot.DefaultDirectory = Environment.SpecialFolder.MyPictures.ToString();
 
                 SprStatus = 0;
+            }
+            catch
+            {
+                return false;
             }
             
             return IsConnected;
@@ -686,7 +691,7 @@ namespace SharpPlant.SharpPlantReview
             _mdbPath = GetMdbPath();
             _mdbDatabase = GetMdbDatabase();
             _sessionName = GetSessionName();
-            _nextTag = GetNextTag();
+            //_nextTag = GetNextTag();
             _nextAnnotation = GetNextAnnotation();
             _designFiles = GetDesignFiles();
             _tags = new SprTagCollection(this);
@@ -987,8 +992,9 @@ namespace SharpPlant.SharpPlantReview
                 if (SprStatus != 0)
                     throw SprException;
 
-                if (!returnData.Labels.ContainsKey(lblName))
-                    returnData.Labels.Add(lblName, lblValue);
+                var trimmedName = lblName.TrimEnd(':');
+                if (!returnData.Labels.ContainsKey(trimmedName))
+                    returnData.Labels.Add(trimmedName, lblValue);
             }
             return returnData;
         }
@@ -1513,12 +1519,8 @@ namespace SharpPlant.SharpPlantReview
 
             // Format the snapshot if required
             if (snap.OutputFormat != SprSnapshotFormat.Bmp)
-            {
-                SprSnapShot.FormatSnapshot(imgPath, snap.OutputFormat);
-                imgPath = Path.ChangeExtension(imgPath, snap.OutputFormat.ToString());
-            }
-                
-
+                return SprSnapShot.FormatSnapshot(imgPath, snap.OutputFormat);
+            
             return Image.FromFile(imgPath);
         }
 
