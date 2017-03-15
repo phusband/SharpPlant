@@ -112,7 +112,7 @@ If the API module is installed, additional libraries and files will be located i
 - 8/12/2013 Beta 0.4 Release
 
 ## Contributors
-[Parrish Husband] (https://github.com/Allockse)
+[Parrish Husband] (https://github.com/phusband)
 
 ## Support/Discussion
 [Official support thread at DaveTyner.com] (http://www.davetyner.com/forum/forumdisplay.php?127-Sharp-Plant)
